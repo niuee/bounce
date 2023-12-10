@@ -8,7 +8,7 @@ export type Keyframe<T> = {
 
 export type AnimationSequence<T> = {
     keyframes: Keyframe<T>[];
-    animationFn: (value: T) => void;
+    applyAnimationValue: (value: T) => void;
     animatableAttributeHelper: AnimatableAttributeHelper<T>;
 }
 
@@ -18,12 +18,14 @@ export class Animator{
     private duration: number;
     private easingFunction: (timePercentage: number) => number;
     private keyframesList: AnimationSequence<any>[];
+    private loop: boolean;
 
-    constructor(keyframes: AnimationSequence<any>[], duration: number = 1, easingFunction: (timePercentage: number)=>number = easeFunctions.linear){
+    constructor(keyframes: AnimationSequence<any>[], duration: number = 1, loop: boolean = false, easingFunction: (timePercentage: number)=>number = easeFunctions.linear){
         this.timePercentage = 1.1;
         this.duration = duration;
         this.easingFunction = easingFunction;
         this.keyframesList = keyframes;
+        this.loop = loop;
     }
 
     startAnimation(){
@@ -49,9 +51,12 @@ export class Animator{
             }
             this.keyframesList.forEach((animationSequence)=>{
                 const value = this.findValue(targetPercentage, animationSequence.keyframes, animationSequence.animatableAttributeHelper);
-                animationSequence.animationFn(value);
+                animationSequence.applyAnimationValue(value);
             })
             this.timePercentage = targetTimePercentage;
+            if(this.timePercentage > 1 && this.loop){
+                this.timePercentage = 0;
+            }
         }
     }
 

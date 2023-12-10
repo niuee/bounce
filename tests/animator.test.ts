@@ -34,7 +34,7 @@ describe("Animator Tests", ()=>{
         exampleObj = new AnimationMockClass({x: 0, y: 0});
         const positionAnimationSequence: AnimationSequence<Point> = {
             keyframes: positionKeyframes,
-            animationFn: exampleObj.setPosition.bind(exampleObj),
+            applyAnimationValue: exampleObj.setPosition.bind(exampleObj),
             animatableAttributeHelper: new PointAnimationHelper(),
         };
         testAnimator = new Animator([positionAnimationSequence]);
