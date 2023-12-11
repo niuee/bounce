@@ -79,7 +79,7 @@ export class Animator{
                 right = mid - 1;
             }
         }
-        return animatableAttributeHelper.lerp(0.5, keyframes[left - 1], keyframes[left]);
+        return animatableAttributeHelper.lerp(valuePercentage, keyframes[left - 1], keyframes[left]);
     }
 
 }
