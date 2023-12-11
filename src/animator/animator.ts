@@ -62,7 +62,6 @@ export class Animator{
                 }
                 while(this.currentKeyframeIndex[index] < animationSequence.keyframes.length && animationSequence.keyframes[this.currentKeyframeIndex[index]].percentage <= targetPercentage){
                     this.currentKeyframeIndex[index] += 1;
-                    
                 }
                 animationSequence.applyAnimationValue(value);
             })
