@@ -18,6 +18,7 @@ export class Animator{
     private duration: number;
     private easingFunction: (timePercentage: number) => number;
     private keyframesList: AnimationSequence<any>[];
+    private currentKeyframeIndex: number[];
     private loop: boolean;
 
     constructor(keyframes: AnimationSequence<any>[], duration: number = 1, loop: boolean = false, easingFunction: (timePercentage: number)=>number = easeFunctions.linear){
@@ -26,6 +27,7 @@ export class Animator{
         this.easingFunction = easingFunction;
         this.keyframesList = keyframes;
         this.loop = loop;
+        this.currentKeyframeIndex = Array(this.keyframesList.length).fill(0);
     }
 
     startAnimation(){
@@ -34,6 +36,7 @@ export class Animator{
 
     cancelAnimation(){
         this.timePercentage = 1.1;
+        this.currentKeyframeIndex = Array(this.keyframesList.length).fill(0);
     }
 
     setEasingFunction(easingFunction: (timePercentage: number) => number){
@@ -49,8 +52,18 @@ export class Animator{
             if (targetTimePercentage > 1){
                 targetPercentage = this.easingFunction(1);
             }
-            this.keyframesList.forEach((animationSequence)=>{
-                const value = this.findValue(targetPercentage, animationSequence.keyframes, animationSequence.animatableAttributeHelper);
+            this.keyframesList.forEach((animationSequence, index)=>{
+                const curFrameNumber = this.currentKeyframeIndex[index];
+                let value: any;
+                if(curFrameNumber < animationSequence.keyframes.length && animationSequence.keyframes[curFrameNumber].percentage == targetPercentage){
+                    value = animationSequence.keyframes[curFrameNumber].value;
+                } else {
+                    value = this.findValue(targetPercentage, animationSequence.keyframes, animationSequence.animatableAttributeHelper);
+                }
+                while(this.currentKeyframeIndex[index] < animationSequence.keyframes.length && animationSequence.keyframes[this.currentKeyframeIndex[index]].percentage <= targetPercentage){
+                    this.currentKeyframeIndex[index] += 1;
+                    
+                }
                 animationSequence.applyAnimationValue(value);
             })
             this.timePercentage = targetTimePercentage;
