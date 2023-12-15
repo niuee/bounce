@@ -15,7 +15,7 @@ export type AnimationSequence<T> = {
     easeFn?: (percentage: number) => number;
 }
 
-export class Animator{
+export class AnimationGroup{
 
     private timePercentage: number;
     private duration: number;

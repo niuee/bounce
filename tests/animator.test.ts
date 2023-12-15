@@ -1,5 +1,5 @@
 import { Point } from "point2point";
-import { AnimationSequence, Keyframe, PointAnimationHelper, Animator} from "../src";
+import { AnimationSequence, Keyframe, PointAnimationHelper, AnimationGroup} from "../src";
 import * as EasingFunctions from "../src/easeFunctions";
 
 export class AnimationMockClass {
@@ -20,7 +20,7 @@ export class AnimationMockClass {
 
 describe("Animator Tests", ()=>{
 
-    let testAnimator: Animator;
+    let testAnimator: AnimationGroup;
     let exampleObj: AnimationMockClass;
 
     beforeEach(()=>{
@@ -37,7 +37,7 @@ describe("Animator Tests", ()=>{
             applyAnimationValue: exampleObj.setPosition.bind(exampleObj),
             animatableAttributeHelper: new PointAnimationHelper(),
         };
-        testAnimator = new Animator([positionAnimationSequence]);
+        testAnimator = new AnimationGroup([positionAnimationSequence]);
     });
 
     test("Play Animation", ()=>{
