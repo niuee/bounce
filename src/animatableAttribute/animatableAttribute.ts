@@ -28,3 +28,17 @@ export class NumberAnimationHelper implements AnimatableAttributeHelper<number>{
         return res;
     }
 }
+
+export class StringAnimationHelper implements AnimatableAttributeHelper<string>{
+    constructor(){
+
+    }
+    
+    lerp(ratio: number, start: Keyframe<string>, end: Keyframe<string>): string {
+        const percentageScale = (ratio - start.percentage) / (end.percentage - start.percentage)
+        // if percentageScale is negative that means it's before the start value just return start value 
+        // if percentageScale is more than 1 that means it's after the end value just return the end value
+        // if percentageScale is less than 0.5 return the start value else return the end value
+        return percentageScale < 0 || percentageScale < 0.5 ? start.value : end.value;
+    }
+}
