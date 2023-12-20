@@ -52,6 +52,10 @@ export class AnimationGroup{
         this.onGoing = false;
     }
 
+    resumeAnimation(){
+        this.onGoing = true;
+    }
+
     // delta time should be in seconds
     animate(deltaTime: number){
         if(this.timePercentage <= 1 && this.onGoing){
@@ -60,7 +64,7 @@ export class AnimationGroup{
             let targetTimePercentage = this.timePercentage + currentDeltaTimePercentage;
             for(let index = 0; index < this.keyframesList.length; index++){
                 const animationSequence = this.keyframesList[index];
-                if(animationSequence.startPercentage != undefined && animationSequence.startPercentage < this.timePercentage){
+                if(animationSequence.startPercentage != undefined && animationSequence.startPercentage > this.timePercentage){
                     continue;
                 }
                 if (animationSequence.easeFn == undefined){
@@ -81,7 +85,6 @@ export class AnimationGroup{
                     this.currentKeyframeIndex[index] += 1;
                 }
                 animationSequence.applyAnimationValue(value);
-
             }
             this.timePercentage = targetTimePercentage;
             if(this.timePercentage > 1 && this.loop){
