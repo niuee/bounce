@@ -1,6 +1,5 @@
 import * as easeFunctions from "../easeFunctions";
 import { AnimatableAttributeHelper } from "../animatableAttribute";
-import { Point } from "point2point";
 
 export type Keyframe<T> = {
     percentage: number; // from 0 to 1;
