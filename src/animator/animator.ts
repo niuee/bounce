@@ -13,6 +13,8 @@ export type AnimationSequence<T> = {
     applyAnimationValue: (value: T) => void;
     animatableAttributeHelper: AnimatableAttributeHelper<T>;
     easeFn?: (percentage: number) => number;
+    setUp?: Function;
+    tearDown?: Function;
 }
 
 export class AnimationGroup{
@@ -39,6 +41,11 @@ export class AnimationGroup{
         this.timePercentage = 0;
         this.currentTime = 0;
         this.onGoing = true;
+        this.keyframesList.forEach((animationSequence, index) => {
+            if(animationSequence.setUp != undefined){
+                animationSequence.setUp();
+            }
+        });
     }
 
     cancelAnimation(){
@@ -46,6 +53,11 @@ export class AnimationGroup{
         this.currentKeyframeIndex = Array(this.keyframesList.length).fill(0);
         this.onGoing = false;
         this.currentTime = 0;
+        this.keyframesList.forEach((animationSequence, index) => {
+            if(animationSequence.tearDown != undefined){
+                animationSequence.tearDown();
+            }
+        });
     }
 
     pauseAnimation(){
