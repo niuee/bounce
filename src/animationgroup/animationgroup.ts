@@ -7,7 +7,10 @@ export type Keyframe<T> = {
 }
 
 export type AnimationSequence<T> = {
-    startPercentage?:number;
+    stagger?: {
+        startPercentage: number;
+        keyframePercentageIsRelative: boolean; // relative will gurantee to play the entire animation sequence from 0 percentage; // if not relative, the animation sequence will be played at the starting percentage. 
+    }
     keyframes: Keyframe<T>[];
     applyAnimationValue: (value: T) => void;
     animatableAttributeHelper: AnimatableAttributeHelper<T>;
@@ -40,6 +43,7 @@ export class AnimationGroup{
         this.timePercentage = 0;
         this.currentTime = 0;
         this.onGoing = true;
+        this.currentKeyframeIndex = Array(this.keyframesList.length).fill(0);
         this.keyframesList.forEach((animationSequence, index) => {
             if(animationSequence.setUp != undefined){
                 animationSequence.setUp();
@@ -75,13 +79,16 @@ export class AnimationGroup{
             let targetTimePercentage = this.timePercentage + currentDeltaTimePercentage;
             for(let index = 0; index < this.keyframesList.length; index++){
                 const animationSequence = this.keyframesList[index];
-                if(animationSequence.startPercentage != undefined && animationSequence.startPercentage > this.timePercentage){
+                if(animationSequence.stagger != undefined && animationSequence.stagger.startPercentage > targetTimePercentage){
                     continue;
                 }
                 if (animationSequence.easeFn == undefined){
                     animationSequence.easeFn = easeFunctions.easeInOutSine;
                 }
                 let targetPercentage = animationSequence.easeFn(targetTimePercentage);
+                if (animationSequence.stagger != undefined && animationSequence.stagger.keyframePercentageIsRelative){
+                    targetPercentage =  animationSequence.easeFn((targetTimePercentage - animationSequence.stagger.startPercentage) / (1 - animationSequence.stagger.startPercentage));
+                }
                 if (targetTimePercentage > 1){
                     targetPercentage = animationSequence.easeFn(1);
                 }
