@@ -1,5 +1,5 @@
 import { Point } from "point2point";
-import { AnimationSequence, Keyframe, PointAnimationHelper, AnimationGroup, AnimationGroupB, AnimationSeq} from "../src";
+import { AnimationSequence, Keyframe, PointAnimationHelper, AnimationGroup, AnimationGroupLegacy, AnimationSequenceLegacy} from "../src";
 import * as EasingFunctions from "../src/easeFunctions";
 
 export class AnimationMockClass {
@@ -20,7 +20,7 @@ export class AnimationMockClass {
 
 describe("Animator Tests", ()=>{
 
-    let testAnimator: AnimationGroup;
+    let testAnimator: AnimationGroupLegacy;
     let exampleObj: AnimationMockClass;
 
     beforeEach(()=>{
@@ -32,12 +32,12 @@ describe("Animator Tests", ()=>{
         positionKeyframes.push({percentage: 1, value: {x: 10, y: 10}});
 
         exampleObj = new AnimationMockClass({x: 0, y: 0});
-        const positionAnimationSequence: AnimationSequence<Point> = {
+        const positionAnimationSequence: AnimationSequenceLegacy<Point> = {
             keyframes: positionKeyframes,
             applyAnimationValue: exampleObj.setPosition.bind(exampleObj),
             animatableAttributeHelper: new PointAnimationHelper(),
         };
-        testAnimator = new AnimationGroup([positionAnimationSequence]);
+        testAnimator = new AnimationGroupLegacy([positionAnimationSequence]);
     });
 
     test("Play Animation", ()=>{
@@ -107,7 +107,7 @@ describe("Animator Tests", ()=>{
 
 describe("AnimationGroupB Tests", ()=>{
 
-    let testAnimator: AnimationGroupB;
+    let testAnimator: AnimationGroup;
     let exampleObj: AnimationMockClass;
 
     beforeEach(()=>{
@@ -119,13 +119,13 @@ describe("AnimationGroupB Tests", ()=>{
         positionKeyframes.push({percentage: 1, value: {x: 10, y: 10}});
 
         exampleObj = new AnimationMockClass({x: 0, y: 0});
-        const positionAnimationSequence: AnimationSeq<Point> = {
+        const positionAnimationSequence: AnimationSequence<Point> = {
             duration: 1,
             keyframes: positionKeyframes,
             applyAnimationValue: (value: Point) => {exampleObj.setPosition(value);},
             animatableAttributeHelper: new PointAnimationHelper(),
         };
-        testAnimator = new AnimationGroupB(0, [positionAnimationSequence], 1, false);
+        testAnimator = new AnimationGroup(0, [positionAnimationSequence], 1, false);
     });
 
     test("Play Animation", ()=>{

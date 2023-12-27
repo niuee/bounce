@@ -6,7 +6,7 @@ export type Keyframe<T> = {
     value: T;
 }
 
-export type AnimationSequence<T> = {
+export type AnimationSequenceLegacy<T> = {
     stagger?: {
         startPercentage: number;
         keyframePercentageIsRelative: boolean; // relative will gurantee to play the entire animation sequence from 0 percentage; // if not relative, the animation sequence will be played at the starting percentage. 
@@ -19,7 +19,7 @@ export type AnimationSequence<T> = {
     tearDown?: Function;
 }
 
-export type AnimationSeq<T> = {
+export type AnimationSequence<T> = {
     startTime?: number; // this is the time in parent group
     duration: number;
     keyframes: Keyframe<T>[];
@@ -30,17 +30,17 @@ export type AnimationSeq<T> = {
     tearDown?: Function;
 }
 
-export class AnimationGroup{
+export class AnimationGroupLegacy{
 
     private timePercentage: number;
     private duration: number;
-    private keyframesList: AnimationSequence<any>[];
+    private keyframesList: AnimationSequenceLegacy<any>[];
     private currentKeyframeIndex: number[];
     private loop: boolean;
     private currentTime: number;
     private onGoing: boolean;
 
-    constructor(keyframes: AnimationSequence<any>[], duration: number = 1, loop: boolean = false){
+    constructor(keyframes: AnimationSequenceLegacy<any>[], duration: number = 1, loop: boolean = false){
         this.timePercentage = 1.1;
         this.duration = duration;
         this.keyframesList = keyframes;
@@ -152,17 +152,17 @@ export class AnimationGroup{
 
 }
 
-export class AnimationGroupB{
+export class AnimationGroup{
 
     private startTime: number; // this is the time in parent group
     private localTime: number; // local time starting from 0 up til duration
     private duration: number;
-    private keyframesList: AnimationSeq<any>[];
+    private keyframesList: AnimationSequence<any>[];
     private currentKeyframeIndex: number[];
     private loop: boolean;
     private onGoing: boolean;
 
-    constructor(startTime: number = 0, keyframes: AnimationSeq<any>[], duration: number = 1, loop: boolean = false){
+    constructor(startTime: number = 0, keyframes: AnimationSequence<any>[], duration: number = 1, loop: boolean = false){
         this.startTime = startTime;
         this.localTime = duration + 0.1;
         this.duration = duration;
@@ -170,6 +170,13 @@ export class AnimationGroupB{
         this.loop = loop;
         this.currentKeyframeIndex = Array(this.keyframesList.length).fill(0);
         this.onGoing = false;
+        const computedDuration = this.keyframesList.reduce((currentMax, animationSequence) => {
+            if(animationSequence.startTime == undefined){
+                animationSequence.startTime = 0;
+            }
+            const endTime = animationSequence.startTime + animationSequence.duration;
+            return Math.max(currentMax, endTime);
+        }, 0);
     }
 
     startAnimation(){
@@ -213,7 +220,7 @@ export class AnimationGroupB{
                     continue;
                 }
                 if(animationSequence.startTime == undefined){
-                    animationSequence.startTime = this.startTime;
+                    animationSequence.startTime = 0;
                 }
                 if (animationSequence.easeFn == undefined){
                     animationSequence.easeFn = easeFunctions.easeInOutSine;
@@ -267,5 +274,40 @@ export class AnimationGroupB{
         if(!this.onGoing && this.localTime > this.duration){
             this.duration = duration;
         }
+    }
+
+    addAnimtaionSequence(animationSequence: AnimationSequence<any>){
+        if (this.onGoing || (this.localTime < this.duration && this.localTime > 0)){
+            return;
+        }
+        this.keyframesList.push(animationSequence);
+        this.currentKeyframeIndex.push(0);
+        this.duration = this.keyframesList.reduce((currentMax, animationSequence) => {
+            if(animationSequence.startTime == undefined){
+                animationSequence.startTime = 0;
+            }
+            const endTime = animationSequence.startTime + animationSequence.duration;
+            return Math.max(currentMax, endTime);
+        }, 0);
+    }
+
+    appendBufferTime(time: number){
+        if (this.onGoing || (this.localTime < this.duration && this.localTime > 0)){
+            return;
+        }
+        this.duration += time;
+    }
+
+    prependBufferTime(time: number){
+        if (this.onGoing || (this.localTime < this.duration && this.localTime > 0)){
+            return;
+        }
+        this.duration += time;
+        this.keyframesList.forEach((animationSequence) => {
+            if(animationSequence.startTime == undefined){
+                animationSequence.startTime = 0;
+            }
+            animationSequence.startTime += time;
+        });
     }
 }
