@@ -114,6 +114,29 @@ export class CompositeAnimation implements Animator{
             animation.animator.tearDown();
         });  
     }
+
+    addAnimation(name: string, animation: Animator, startTime: number = 0){
+        this.animations.set(name, {animator: animation, startTime: startTime});
+        if(this.localTime > startTime){
+            animation.animate(this.localTime - startTime);
+        }
+        const endTime = startTime + animation.getDuration();
+        this.duration = Math.max(this.duration, endTime);
+    }
+
+    removeAnimation(name: string){
+        let deleted = this.animations.delete(name);
+        if(deleted){
+            this.duration = 0;
+            this.animations.forEach((animation)=>{
+                if(animation.startTime == undefined){
+                    animation.startTime = 0;
+                }
+                const endTime = animation.startTime + animation.animator.getDuration();
+                this.duration = Math.max(this.duration, endTime);
+            });
+        }
+    }
 }
 
 export class Animation<T> implements Animator{
