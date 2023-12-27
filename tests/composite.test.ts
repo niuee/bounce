@@ -1,6 +1,6 @@
+import {Animation, Animator, CompositeAnimation, AnimationSequence, Keyframe, PointAnimationHelper, NumberAnimationHelper} from "../src";
 import { Point } from "point2point";
-import { AnimationSequence, Keyframe, PointAnimationHelper, AnimationGroup, AnimationGroupLegacy, AnimationSequenceLegacy} from "../src";
-import * as EasingFunctions from "../src/easeFunctions";
+
 
 class AnimationMockClass {
     private position: Point;
@@ -18,9 +18,9 @@ class AnimationMockClass {
     }
 }
 
-describe("Animator Tests", ()=>{
+describe("Animation Class Tests", ()=>{
 
-    let testAnimator: AnimationGroupLegacy;
+    let testAnimator: Animation<Point>;
     let exampleObj: AnimationMockClass;
 
     beforeEach(()=>{
@@ -32,25 +32,13 @@ describe("Animator Tests", ()=>{
         positionKeyframes.push({percentage: 1, value: {x: 10, y: 10}});
 
         exampleObj = new AnimationMockClass({x: 0, y: 0});
-        const positionAnimationSequence: AnimationSequenceLegacy<Point> = {
+        const positionAnimationSequence: AnimationSequence<Point> = {
+            duration: 1,
             keyframes: positionKeyframes,
-            applyAnimationValue: exampleObj.setPosition.bind(exampleObj),
+            applyAnimationValue: (value: Point) => {exampleObj.setPosition(value);},
             animatableAttributeHelper: new PointAnimationHelper(),
         };
-        testAnimator = new AnimationGroupLegacy([positionAnimationSequence]);
-    });
-
-    test("Play Animation", ()=>{
-        const duration = 2;
-        testAnimator.setDuration(duration);
-        testAnimator.startAnimation();
-        const deltaTime = 0.1;
-        let time = 0;
-        while (time <= duration){
-            testAnimator.animate(deltaTime);
-            time += deltaTime;
-        }
-        expect(exampleObj.getPosition()).toEqual({x: 10, y: 10});
+        testAnimator = new Animation(positionKeyframes, (value: Point)=>{exampleObj.setPosition(value)}, new PointAnimationHelper());
     });
 
     test("Without starting an animation the animated attribute won't change", ()=>{
@@ -63,14 +51,14 @@ describe("Animator Tests", ()=>{
         expect(exampleObj.getPosition()).toEqual({x: 0, y: 0});
     });
 
-    test("Canceling the animation would stop the animation", ()=>{
+    test("Stopping the animation would stop the animation", ()=>{
         const deltaTime = 0.1;
         let time = 0;
         testAnimator.startAnimation();
         let expectedPosition: Point = {x: 0, y: 0};
         while (time <= 1){
             if(time == 0.4){
-                testAnimator.cancelAnimation();
+                testAnimator.stopAnimation();
                 expectedPosition = exampleObj.getPosition();
             }
             testAnimator.animate(deltaTime);
@@ -105,40 +93,33 @@ describe("Animator Tests", ()=>{
 
 });
 
-describe("AnimationGroupB Tests", ()=>{
+describe("Composite Animation Tests", ()=>{
 
-    let testAnimator: AnimationGroup;
+    let testAnimator: CompositeAnimation;
+    let firstAnimation: Animation<Point>;
+    let secondAnimation: Animation<number>;
     let exampleObj: AnimationMockClass;
+    let animatedNumber: number;
 
     beforeEach(()=>{
-
+        animatedNumber = 0;
         const positionKeyframes: Keyframe<Point>[] = [];
 
         positionKeyframes.push({percentage: 0, value: {x: 0, y: 0}});
         positionKeyframes.push({percentage: 0.5, value: {x: 3, y: 3}});
         positionKeyframes.push({percentage: 1, value: {x: 10, y: 10}});
-
+        let numberKeyframes: Keyframe<number>[] = [
+            {percentage: 0, value: 0},
+            {percentage: 0.5, value: 3},
+            {percentage: 1, value: 10},
+        ];
         exampleObj = new AnimationMockClass({x: 0, y: 0});
-        const positionAnimationSequence: AnimationSequence<Point> = {
-            duration: 1,
-            keyframes: positionKeyframes,
-            applyAnimationValue: (value: Point) => {exampleObj.setPosition(value);},
-            animatableAttributeHelper: new PointAnimationHelper(),
-        };
-        testAnimator = new AnimationGroup(0, [positionAnimationSequence], 1, false);
-    });
-
-    test("Play Animation", ()=>{
-        const duration = 2;
-        testAnimator.setDuration(duration);
-        testAnimator.startAnimation();
-        const deltaTime = 0.1;
-        let time = 0;
-        while (time <= duration){
-            testAnimator.animate(deltaTime);
-            time += deltaTime;
-        }
-        expect(exampleObj.getPosition()).toEqual({x: 10, y: 10});
+        firstAnimation = new Animation(positionKeyframes, (value: Point)=>{exampleObj.setPosition(value)}, new PointAnimationHelper());
+        secondAnimation = new Animation(numberKeyframes, (value: number)=>{animatedNumber = value}, new NumberAnimationHelper());
+        let animationMap = new Map<string, {animator: Animator, startTime: number}>();
+        animationMap.set("first", {animator: firstAnimation, startTime: 0});
+        animationMap.set("second", {animator: secondAnimation, startTime: 0});
+        testAnimator = new CompositeAnimation(animationMap);
     });
 
     test("Without starting an animation the animated attribute won't change", ()=>{
@@ -149,23 +130,26 @@ describe("AnimationGroupB Tests", ()=>{
             time += deltaTime;
         }
         expect(exampleObj.getPosition()).toEqual({x: 0, y: 0});
+        expect(animatedNumber).toEqual(0);
     });
 
-    test("Canceling the animation would stop the animation", ()=>{
+    test("Stopping the animation would stop the animation", ()=>{
         const deltaTime = 0.1;
         let time = 0;
         testAnimator.startAnimation();
         let expectedPosition: Point = {x: 0, y: 0};
+        let expectedNumber: number = 0;
         while (time <= 1){
             if(time == 0.4){
-                testAnimator.cancelAnimation();
+                testAnimator.pauseAnimation();
                 expectedPosition = exampleObj.getPosition();
+                expectedNumber = animatedNumber;
             }
             testAnimator.animate(deltaTime);
             time += deltaTime;
         }
         expect(exampleObj.getPosition()).toEqual(expectedPosition);
-        console.log(expectedPosition);
+        expect(animatedNumber).toBeCloseTo(2.4);
     });
 
     test("Animation is played according to keyframes", ()=>{
@@ -176,6 +160,7 @@ describe("AnimationGroupB Tests", ()=>{
             if(time == 0.5){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
                 expect(exampleObj.getPosition().y).toBeCloseTo(3);
+                expect(animatedNumber).toBeCloseTo(3);
             }
             testAnimator.animate(deltaTime);
             time += deltaTime;

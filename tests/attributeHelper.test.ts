@@ -17,6 +17,13 @@ describe("Point Lerping", ()=>{
 
         const actual = testHelper.lerp(0.5, startKeyframe, endKeyframe);
         expect(actual).toEqual({x: 5, y: 5});
+        const midKeyframe: Keyframe<Point> = {
+            percentage: 0.5,
+            value: {x: 3, y: 3}
+        }
+        const actual2 = testHelper.lerp(0.4, startKeyframe, midKeyframe);
+        expect(actual2.x).toBeCloseTo(2.4);
+        expect(actual2.y).toBeCloseTo(2.4);
     });
 
     test("Extrapolating beyond", ()=>{
@@ -64,6 +71,12 @@ describe("Number Lerping", ()=>{
 
         const actual = testHelper.lerp(0.5, startKeyframe, endKeyframe);
         expect(actual).toBe(5);
+        const midKeyframe: Keyframe<number> = {
+            percentage: 0.5,
+            value: 3
+        }
+        const actual2 = testHelper.lerp(0.4, startKeyframe, midKeyframe);
+        expect(actual2).toBeCloseTo(2.4);
     });
 
     test("Extrapolating beyond", ()=>{
