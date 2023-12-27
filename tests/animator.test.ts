@@ -165,7 +165,6 @@ describe("AnimationGroupB Tests", ()=>{
             time += deltaTime;
         }
         expect(exampleObj.getPosition()).toEqual(expectedPosition);
-        console.log(expectedPosition);
     });
 
     test("Animation is played according to keyframes", ()=>{

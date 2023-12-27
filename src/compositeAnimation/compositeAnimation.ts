@@ -8,6 +8,8 @@ export interface Animator{
     resumeAnimation(): void;
     getDuration(): number;
     animate(deltaTime: number): void;
+    setUp(): void;
+    tearDown(): void;
 }
 
 
@@ -18,8 +20,10 @@ export class CompositeAnimation implements Animator{
     private duration: number;
     private onGoing: boolean;
     private loop: boolean;
+    private setUpFn: Function;
+    private tearDownFn: Function;
 
-    constructor(animations: Map<string, {animator: Animator, startTime?: number}>, loop: boolean = false){
+    constructor(animations: Map<string, {animator: Animator, startTime?: number}>, loop: boolean = false, setupFn: Function = ()=>{}, tearDownFn: Function = ()=>{}){
         this.animations = animations;
         this.duration = 0;
         this.animations.forEach((animation)=>{
@@ -32,6 +36,8 @@ export class CompositeAnimation implements Animator{
         this.localTime = this.duration + 0.1;
         this.onGoing = false;
         this.loop = loop;
+        this.setUpFn = setupFn;
+        this.tearDownFn = tearDownFn;
     }
 
     animate(deltaTime: number): void {
@@ -94,6 +100,20 @@ export class CompositeAnimation implements Animator{
     getDuration(): number {
         return this.duration;
     }
+
+    setUp(): void {
+        this.setUpFn();
+        this.animations.forEach((animation) => {
+            animation.animator.setUp();
+        });
+    }
+
+    tearDown(): void {
+        this.tearDownFn();
+        this.animations.forEach((animation) => {
+            animation.animator.tearDown();
+        });  
+    }
 }
 
 export class Animation<T> implements Animator{
@@ -107,8 +127,10 @@ export class Animation<T> implements Animator{
     private onGoing: boolean;
     private currentKeyframeIndex: number;
     private loop: boolean;
+    private setUpFn: Function;
+    private tearDownFn: Function;
 
-    constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1, loop: boolean = false, easeFn: (percentage: number) => number = easeFunctions.linear){
+    constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1, loop: boolean = false, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this.duration = duration;
         this.keyframes = keyFrames;
         this.animatableAttributeHelper = animatableAttributeHelper;
@@ -118,6 +140,8 @@ export class Animation<T> implements Animator{
         this.localTime = duration + 0.1;
         this.currentKeyframeIndex = 0;
         this.loop = loop;
+        this.setUpFn = setUpFn;
+        this.tearDownFn = tearDownFn;
     }
 
     startAnimation(){
@@ -183,17 +207,19 @@ export class Animation<T> implements Animator{
                 right = mid - 1;
             }
         }
-        if(valuePercentage == 0.4){
-            console.log("-----");
-            console.log("start", keyframes[left - 1]);
-            console.log("end", keyframes[left]);
-
-        }
         return animatableAttributeHelper.lerp(valuePercentage, keyframes[left - 1], keyframes[left]);
     }
 
     getDuration(): number{
         return this.duration;
+    }
+
+    setUp(): void {
+        this.setUpFn();
+    }
+
+    tearDown(): void {
+        this.tearDownFn(); 
     }
 }
 

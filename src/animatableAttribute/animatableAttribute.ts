@@ -1,5 +1,5 @@
 import { PointCal, Point } from "point2point";
-import { Keyframe } from "../animationgroup";
+import { Keyframe } from "../compositeAnimation";
 
 export interface AnimatableAttributeHelper<T> {
     lerp(ratio: number, start: Keyframe<T>, end: Keyframe<T>): T;
