@@ -24,7 +24,7 @@ export class NumberAnimationHelper implements AnimatableAttributeHelper<number>{
     }
 
     lerp(ratio: number, start: Keyframe<number>, end: Keyframe<number>): number {
-        const res = start.value + (ratio - start.percentage) / (end.percentage - start.percentage) * (end.value - start.value);
+        const res = start.value + ((ratio - start.percentage) / (end.percentage - start.percentage)) * (end.value - start.value);
         return res;
     }
 }
@@ -40,5 +40,22 @@ export class StringAnimationHelper implements AnimatableAttributeHelper<string>{
         // if percentageScale is more than 1 that means it's after the end value just return the end value
         // if percentageScale is less than 0.5 return the start value else return the end value
         return percentageScale < 0 || percentageScale < 0.5 ? start.value : end.value;
+    }
+}
+
+export type RGB = {r: number, g: number, b: number};
+
+export class RGBAnimationHelper implements AnimatableAttributeHelper<RGB> {
+    constructor(){
+
+    }
+
+    lerp(ratio: number, start: Keyframe<RGB>, end: Keyframe<RGB>): RGB {
+        const res = {
+            r: start.value.r + ((ratio - start.percentage) / (end.percentage - start.percentage)) * (end.value.r - start.value.r),
+            g: start.value.g + ((ratio - start.percentage) / (end.percentage - start.percentage)) * (end.value.g - start.value.g),
+            b: start.value.b + ((ratio - start.percentage) / (end.percentage - start.percentage)) * (end.value.b - start.value.b),
+        }
+        return res;
     }
 }
