@@ -275,13 +275,6 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         }
     }
 
-    delayOnce(delayTime: number){
-        if(this.onGoing && this.localTime <= this.duration && this.localTime >= 0){
-            return;
-        }
-        this.localTime = 0 - delayTime;
-    }
-
     drag(dragTime: number){
         this.dragTime = dragTime;
         if(this.parent != undefined){
