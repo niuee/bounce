@@ -167,11 +167,30 @@ describe("Composite Animation Tests", ()=>{
         }
     });
 
-    test("Animation that will use the extrapolation in helper", ()=>{
-        const deltaTime = 0.01;
+    test("Add composite animation to another composte animation", ()=>{
+        let thirdAnimation: Animation<number>;
+        let animatedNumber2: number;
+        animatedNumber2 = 0;
+        let numberKeyframes: Keyframe<number>[] = [
+            {percentage: 0, value: 0},
+            {percentage: 0.5, value: 3},
+            {percentage: 1, value: 10},
+        ];
+        thirdAnimation = new Animation(numberKeyframes, (value: number)=>{animatedNumber2 = value}, new NumberAnimationHelper());
+        let animationMap = new Map<string, {animator: Animator, startTime: number}>();
+        const secondCompositeAnimation = new CompositeAnimation(animationMap);
+        secondCompositeAnimation.addAnimation("third", thirdAnimation);
+        testAnimator.addAnimation("third", secondCompositeAnimation);
+        const deltaTime = 0.1;
         let time = 0;
         testAnimator.startAnimation();
         while (time <= 1){
+            if(time == 0.5){
+                expect(exampleObj.getPosition().x).toBeCloseTo(3);
+                expect(exampleObj.getPosition().y).toBeCloseTo(3);
+                expect(animatedNumber).toBeCloseTo(3);
+                expect(animatedNumber2).toBeCloseTo(3);
+            }
             testAnimator.animate(deltaTime);
             time += deltaTime;
         }
