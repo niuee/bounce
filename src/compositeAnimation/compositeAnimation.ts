@@ -262,13 +262,6 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     delay(delayTime: number){
-        // this.animations.forEach((animation) => {
-        //     if(animation.startTime == undefined){
-        //         animation.startTime = 0;
-        //     }
-        //     animation.startTime += delayTime;
-        // });
-        // this.duration += delayTime;
         this.delayTime = delayTime;
         if(this.parent != undefined){
             this.parent.updateDuration();
@@ -409,6 +402,13 @@ export class Animation<T> implements Animator{
 
     getDuration(): number{
         return this.duration;
+    }
+
+    setDuration(duration: number){
+        this.duration = duration;
+        if(this.parent !== undefined){
+            this.parent.updateDuration();
+        }
     }
 
     setUp(): void {
