@@ -28,6 +28,7 @@ describe("Animation Class Tests", ()=>{
         const positionKeyframes: Keyframe<Point>[] = [];
 
         positionKeyframes.push({percentage: 0, value: {x: 0, y: 0}});
+        positionKeyframes.push({percentage: 0.4, value: {x: 1.7, y: 1.7}});
         positionKeyframes.push({percentage: 0.5, value: {x: 3, y: 3}});
         positionKeyframes.push({percentage: 1, value: {x: 10, y: 10}});
 
@@ -81,11 +82,16 @@ describe("Animation Class Tests", ()=>{
         }
     });
 
-    test("Animation that will use the extrapolation in helper", ()=>{
+    test("Reverse Animation", ()=>{
         const deltaTime = 0.01;
         let time = 0;
+        testAnimator.toggleReverse(true);
         testAnimator.startAnimation();
         while (time <= 1){
+            if(time == 0.6){
+                expect(exampleObj.getPosition().x).toBeCloseTo(1.7);
+                expect(exampleObj.getPosition().y).toBeCloseTo(1.7);
+            }
             testAnimator.animate(deltaTime);
             time += deltaTime;
         }

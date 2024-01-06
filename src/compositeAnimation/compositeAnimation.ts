@@ -2,6 +2,7 @@ import { AnimatableAttributeHelper } from "../animatableAttribute";
 import * as easeFunctions from "../easeFunctions";
 
 export interface Animator{
+    loops: boolean;
     startAnimation(): void;
     stopAnimation(): void;
     pauseAnimation(): void;
@@ -10,9 +11,9 @@ export interface Animator{
     animate(deltaTime: number): void;
     setUp(): void;
     tearDown(): void;
-    loops(): boolean;
     setParent(parent: AnimatorContainer): void;
     detachParent(): void;
+    toggleReverse(reverse: boolean): void;
 }
 
 export interface AnimatorContainer {
@@ -32,6 +33,8 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     private delayTime: number;
     private parent: AnimatorContainer | undefined;
 
+    private reverse: boolean;
+
     constructor(animations: Map<string, {animator: Animator, startTime?: number}>, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setupFn: Function = ()=>{}, tearDownFn: Function = ()=>{}){
         this.animations = animations;
         this.duration = 0;
@@ -47,6 +50,17 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         this.animations.forEach((animation) => {
             animation.animator.setParent(this);
         });
+        this.reverse = false;
+    }
+
+    toggleReverse(reverse: boolean){
+        if(this.reverse == reverse){
+            return;
+        }
+        this.reverse = reverse;
+        this.animations.forEach((animation) => {
+            animation.animator.toggleReverse(reverse);
+        });
     }
     
     setParent(parent: AnimatorContainer){
@@ -58,7 +72,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     animate(deltaTime: number): void {
-        if(!this.onGoing || this.localTime > this.duration + this.delayTime + this.dragTime){
+        if(!this.onGoing || this.localTime > this.duration + this.delayTime + this.dragTime || this.localTime < 0){
             return;
         }
         this.localTime += deltaTime;
@@ -113,7 +127,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         }
         if(this.localTime - this.delayTime > animation.startTime + animation.animator.getDuration() && prevLocalTime - this.delayTime < animation.startTime + animation.animator.getDuration()){
             animation.animator.animate(animation.startTime + animation.animator.getDuration() - (prevLocalTime - this.delayTime));
-            if(animation.animator.loops()){
+            if(animation.animator.loops){
                 animation.animator.startAnimation();
             }
         }
@@ -293,8 +307,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         });
     }
 
-    loops(): boolean {
+    
+    get loops(): boolean {
         return this.loop;
+    }
+
+    set loops(loop: boolean) {
+        this.loop = loop;
     }
 }
 
@@ -313,6 +332,8 @@ export class Animation<T> implements Animator{
     private tearDownFn: Function;
     private parent: AnimatorContainer | undefined;
 
+    private reverse: boolean = false;
+
     constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this.duration = duration;
         this.keyframes = keyFrames;
@@ -326,6 +347,10 @@ export class Animation<T> implements Animator{
         this.setUpFn = setUpFn;
         this.tearDownFn = tearDownFn;
         this.parent = parent;
+    }
+
+    toggleReverse(reverse: boolean){
+        this.reverse = reverse;
     }
 
     startAnimation(){
@@ -358,19 +383,25 @@ export class Animation<T> implements Animator{
                 targetPercentage = this.easeFn(1);
             }
             let value: any;
-            if(this.currentKeyframeIndex < this.keyframes.length && this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage){
+            if(this.currentKeyframeIndex < this.keyframes.length && this.reverse ? 1 - this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage : this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage ){
                 value = this.keyframes[this.currentKeyframeIndex].value;
             } else {
                 value = this.findValue(targetPercentage, this.keyframes, this.animatableAttributeHelper);
             }
-            while(this.currentKeyframeIndex < this.keyframes.length && this.keyframes[this.currentKeyframeIndex].percentage <= targetPercentage){
-                this.currentKeyframeIndex += 1;
+            if(this.reverse){
+                while(this.currentKeyframeIndex >= 0 && 1 - this.keyframes[this.currentKeyframeIndex].percentage <= targetPercentage){
+                    this.currentKeyframeIndex -= 1;
+                }
+            } else {
+                while(this.currentKeyframeIndex < this.keyframes.length && this.keyframes[this.currentKeyframeIndex].percentage <= targetPercentage){
+                    this.currentKeyframeIndex += 1;
+                }
             }
             this.applyAnimationValue(value);
             if(this.localTime >= this.duration){
                 this.onGoing = false;
             }
-            if(this.localTime >= this.duration && this.loop){
+            if((this.localTime >= this.duration)&& this.loop){
                 this.localTime = 0;
                 this.currentKeyframeIndex = 0;
                 this.onGoing = true;
@@ -380,24 +411,42 @@ export class Animation<T> implements Animator{
 
     findValue(valuePercentage: number, keyframes: Keyframe<T>[], animatableAttributeHelper: AnimatableAttributeHelper<T>): T{
         if(valuePercentage > 1){
+            if(this.reverse){
+                return animatableAttributeHelper.lerp(valuePercentage, keyframes[1], keyframes[0]);
+            }
             return animatableAttributeHelper.lerp(valuePercentage, keyframes[keyframes.length - 2], keyframes[keyframes.length - 1]);
         }
         if(valuePercentage < 0){
+            if(this.reverse){
+                return animatableAttributeHelper.lerp(valuePercentage, keyframes[keyframes.length - 2], keyframes[keyframes.length - 1]);
+            }
             return animatableAttributeHelper.lerp(valuePercentage, keyframes[1], keyframes[0]);
         }
         let left = 0;
         let right = keyframes.length - 1;
         while (left <= right) {
             let mid = left + Math.floor((right - left) / 2);
-            if(keyframes[mid].percentage == valuePercentage) {
+            const midPercentage = this.reverse ? 1 - keyframes[mid].percentage : keyframes[mid].percentage;
+            if(midPercentage == valuePercentage) {
                 return keyframes[mid].value;
-            } else if(keyframes[mid].percentage < valuePercentage){
-                left = mid + 1;
+            } else if(midPercentage < valuePercentage){
+                if(this.reverse){
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
+                }
             } else {
-                right = mid - 1;
+                if(this.reverse){
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
             }
         }
-        return animatableAttributeHelper.lerp(valuePercentage, keyframes[left - 1], keyframes[left]);
+        const interpolateStartFrame = this.reverse ? {percentage: 1 - keyframes[left].percentage, value: keyframes[left].value} : keyframes[left - 1];
+        const interplateEndFrame = this.reverse ? {percentage: 1 - keyframes[left - 1].percentage, value: keyframes[left - 1].value} : keyframes[left];
+        // return animatableAttributeHelper.lerp(valuePercentage, keyframes[left - 1], keyframes[left]);
+        return animatableAttributeHelper.lerp(valuePercentage, interpolateStartFrame, interplateEndFrame);
     }
 
     getDuration(): number{
@@ -419,8 +468,12 @@ export class Animation<T> implements Animator{
         this.tearDownFn(); 
     }
 
-    loops(): boolean {
+    get loops(): boolean {
         return this.loop;
+    }
+
+    set loops(loop: boolean) {
+        this.loop = loop;
     }
 
     setParent(parent: AnimatorContainer){
