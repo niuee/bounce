@@ -173,6 +173,26 @@ describe("Composite Animation Tests", ()=>{
         }
     });
 
+    test("Change the duration", ()=>{
+        const deltaTime = 0.1;
+        let time = 0;
+        testAnimator.duration = 2;
+        testAnimator.startAnimation();
+        while (time <= testAnimator.duration){
+            if(time == 1){
+                expect(exampleObj.getPosition().x).toBeCloseTo(3);
+                expect(exampleObj.getPosition().y).toBeCloseTo(3);
+                expect(animatedNumber).toBeCloseTo(3);
+            }
+            testAnimator.animate(deltaTime);
+            time += deltaTime;
+        }
+        expect(exampleObj.getPosition().x).toBeCloseTo(10);
+        expect(exampleObj.getPosition().y).toBeCloseTo(10);
+        expect(animatedNumber).toBeCloseTo(10);
+
+    });
+
     test("Add composite animation to another composte animation", ()=>{
         let thirdAnimation: Animation<number>;
         let animatedNumber2: number;
@@ -189,9 +209,10 @@ describe("Composite Animation Tests", ()=>{
         testAnimator.addAnimation("third", secondCompositeAnimation);
         const deltaTime = 0.1;
         let time = 0;
+        testAnimator.duration = 10;
         testAnimator.startAnimation();
-        while (time <= 1){
-            if(time == 0.5){
+        while (time <= testAnimator.duration){
+            if(time == 5){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
                 expect(exampleObj.getPosition().y).toBeCloseTo(3);
                 expect(animatedNumber).toBeCloseTo(3);

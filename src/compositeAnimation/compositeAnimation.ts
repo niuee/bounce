@@ -171,6 +171,30 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         return this._duration + this.delayTime + this.dragTime;
     }
 
+    // delayTime and dragTime are 
+    set duration(duration: number) {
+        if(duration < 0){
+            return;
+        }
+        const originalDuration = this._duration + this.delayTime + this.dragTime;
+        const scale = duration / originalDuration;
+        const newDelayTime = this.delayTime * scale;
+        const newDragTime = this.dragTime * scale;
+        const newDuration = this._duration * scale;
+        this.delayTime = newDelayTime;
+        this.dragTime = newDragTime;
+        this.animations.forEach((animation)=>{
+            if(animation.startTime == undefined){
+                animation.startTime = 0;
+            }
+            animation.startTime *= scale;
+            animation.animator.duration *= scale;
+        });
+        if(this.parent != undefined){
+            this.parent.updateDuration();
+        }
+    }
+
     getTrueDuration(): number{
         return this._duration;
     }
@@ -284,6 +308,20 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     drag(dragTime: number){
         this.dragTime = dragTime;
+        if(this.parent != undefined){
+            this.parent.updateDuration();
+        }
+    }
+
+    removeDelay(){
+        this.delayTime = 0;
+        if(this.parent != undefined){
+            this.parent.updateDuration();
+        }
+    }
+
+    removeDrag(){
+        this.dragTime = 0;
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
