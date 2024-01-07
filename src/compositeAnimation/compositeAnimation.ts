@@ -24,7 +24,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     private animations: Map<string, {animator: Animator, startTime?: number}>;
     private localTime: number;
-    private duration: number;
+    private _duration: number;
     private onGoing: boolean;
     private loop: boolean;
     private setUpFn: Function;
@@ -37,9 +37,9 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     constructor(animations: Map<string, {animator: Animator, startTime?: number}>, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setupFn: Function = ()=>{}, tearDownFn: Function = ()=>{}){
         this.animations = animations;
-        this.duration = 0;
+        this._duration = 0;
         this.calculateDuration();
-        this.localTime = this.duration + 0.1;
+        this.localTime = this._duration + 0.1;
         this.onGoing = false;
         this.loop = loop;
         this.setUpFn = setupFn;
@@ -72,7 +72,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     animate(deltaTime: number): void {
-        if(!this.onGoing || this.localTime > this.duration + this.delayTime + this.dragTime || this.localTime < 0){
+        if(!this.onGoing || this.localTime > this._duration + this.delayTime + this.dragTime || this.localTime < 0){
             return;
         }
         this.localTime += deltaTime;
@@ -81,10 +81,10 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     checkTerminalAndLoop(){
-        if(this.localTime > this.duration + this.delayTime + this.dragTime){
+        if(this.localTime > this._duration + this.delayTime + this.dragTime){
             this.onGoing = false;
         }
-        if(this.localTime > this.duration + this.delayTime + this.dragTime && this.loop){
+        if(this.localTime > this._duration + this.delayTime + this.dragTime && this.loop){
             this.localTime = 0;
             this.onGoing = true;
         }
@@ -160,7 +160,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     stopAnimation(): void {
         this.onGoing = false;
-        this.localTime = this.duration + 0.1;
+        this.localTime = this._duration + 0.1;
         this.animations.forEach((animation) => {
             animation.animator.stopAnimation();
         });
@@ -168,11 +168,11 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     getDuration(): number {
-        return this.duration + this.delayTime + this.dragTime;
+        return this._duration + this.delayTime + this.dragTime;
     }
 
     getTrueDuration(): number{
-        return this.duration;
+        return this._duration;
     }
 
     setUp(): void {
@@ -196,7 +196,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         }
         animation.setParent(this);
         const endTime = startTime + animation.getDuration();
-        this.duration = Math.max(this.duration, endTime);
+        this._duration = Math.max(this._duration, endTime);
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
@@ -297,13 +297,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     calculateDuration(){
-        this.duration = 0;
+        this._duration = 0;
         this.animations.forEach((animation)=>{
             if(animation.startTime == undefined){
                 animation.startTime = 0;
             }
             const endTime = animation.startTime + animation.animator.getDuration();
-            this.duration = Math.max(this.duration, endTime);
+            this._duration = Math.max(this._duration, endTime);
         });
     }
 
