@@ -3,11 +3,11 @@ import * as easeFunctions from "../easeFunctions";
 
 export interface Animator{
     loops: boolean;
+    duration: number;
     startAnimation(): void;
     stopAnimation(): void;
     pauseAnimation(): void;
     resumeAnimation(): void;
-    getDuration(): number;
     animate(deltaTime: number): void;
     setUp(): void;
     tearDown(): void;
@@ -115,7 +115,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         if(animation.startTime == undefined){
             animation.startTime = 0;
         }
-        if(this.localTime - this.delayTime >= animation.startTime && this.localTime - this.delayTime <= animation.startTime + animation.animator.getDuration()){
+        if(this.localTime - this.delayTime >= animation.startTime && this.localTime - this.delayTime <= animation.startTime + animation.animator.duration){
             return true;
         }
         return false;
@@ -125,8 +125,8 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         if(animation.startTime == undefined){
             animation.startTime = 0;
         }
-        if(this.localTime - this.delayTime > animation.startTime + animation.animator.getDuration() && prevLocalTime - this.delayTime < animation.startTime + animation.animator.getDuration()){
-            animation.animator.animate(animation.startTime + animation.animator.getDuration() - (prevLocalTime - this.delayTime));
+        if(this.localTime - this.delayTime > animation.startTime + animation.animator.duration && prevLocalTime - this.delayTime < animation.startTime + animation.animator.duration){
+            animation.animator.animate(animation.startTime + animation.animator.duration - (prevLocalTime - this.delayTime));
             if(animation.animator.loops){
                 animation.animator.startAnimation();
             }
@@ -167,7 +167,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         this.tearDown();
     }
 
-    getDuration(): number {
+    get duration(): number {
         return this._duration + this.delayTime + this.dragTime;
     }
 
@@ -195,7 +195,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             animation.animate(this.localTime - startTime);
         }
         animation.setParent(this);
-        const endTime = startTime + animation.getDuration();
+        const endTime = startTime + animation.duration;
         this._duration = Math.max(this._duration, endTime);
         if(this.parent != undefined){
             this.parent.updateDuration();
@@ -210,7 +210,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         if(afterAnimation.startTime == undefined){
             afterAnimation.startTime = 0;
         }
-        let startTime = afterAnimation.startTime + afterAnimation.animator.getDuration();
+        let startTime = afterAnimation.startTime + afterAnimation.animator.duration;
         startTime += delay;
         this.addAnimation(name, animation, startTime);
         this.calculateDuration();
@@ -302,11 +302,10 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             if(animation.startTime == undefined){
                 animation.startTime = 0;
             }
-            const endTime = animation.startTime + animation.animator.getDuration();
+            const endTime = animation.startTime + animation.animator.duration;
             this._duration = Math.max(this._duration, endTime);
         });
     }
-
     
     get loops(): boolean {
         return this.loop;
@@ -320,7 +319,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 export class Animation<T> implements Animator{
 
     private localTime: number; // local time starting from 0 up til duration
-    private duration: number;
+    private _duration: number;
     private keyframes: Keyframe<T>[];
     private animatableAttributeHelper: AnimatableAttributeHelper<T>;
     private applyAnimationValue: (value: T) => void;
@@ -335,7 +334,7 @@ export class Animation<T> implements Animator{
     private reverse: boolean = false;
 
     constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
-        this.duration = duration;
+        this._duration = duration;
         this.keyframes = keyFrames;
         this.animatableAttributeHelper = animatableAttributeHelper;
         this.applyAnimationValue = applyAnimationValue;
@@ -362,7 +361,7 @@ export class Animation<T> implements Animator{
 
     stopAnimation(){
         this.onGoing = false;
-        this.localTime = this.duration + 0.1;
+        this.localTime = this._duration + 0.1;
         this.tearDown();
     }
 
@@ -375,9 +374,9 @@ export class Animation<T> implements Animator{
     }
 
     animate(deltaTime: number){
-        if(this.onGoing && this.localTime <= this.duration){
+        if(this.onGoing && this.localTime <= this._duration){
             this.localTime += deltaTime;
-            let localTimePercentage = this.localTime / this.duration;
+            let localTimePercentage = this.localTime / this._duration;
             let targetPercentage = this.easeFn(localTimePercentage);
             if (localTimePercentage > 1){
                 targetPercentage = this.easeFn(1);
@@ -398,10 +397,10 @@ export class Animation<T> implements Animator{
                 }
             }
             this.applyAnimationValue(value);
-            if(this.localTime >= this.duration){
+            if(this.localTime >= this._duration){
                 this.onGoing = false;
             }
-            if((this.localTime >= this.duration)&& this.loop){
+            if((this.localTime >= this._duration)&& this.loop){
                 this.localTime = 0;
                 this.currentKeyframeIndex = 0;
                 this.onGoing = true;
@@ -449,17 +448,6 @@ export class Animation<T> implements Animator{
         return animatableAttributeHelper.lerp(valuePercentage, interpolateStartFrame, interplateEndFrame);
     }
 
-    getDuration(): number{
-        return this.duration;
-    }
-
-    setDuration(duration: number){
-        this.duration = duration;
-        if(this.parent !== undefined){
-            this.parent.updateDuration();
-        }
-    }
-
     setUp(): void {
         this.setUpFn();
     }
@@ -474,6 +462,23 @@ export class Animation<T> implements Animator{
 
     set loops(loop: boolean) {
         this.loop = loop;
+    }
+
+    get duration(): number {
+        return this._duration;
+    }
+
+    set duration(duration: number) {
+        if(duration < 0){
+            return;
+        }
+        if(this.localTime > duration && this.onGoing){
+            this.localTime = duration;
+        }
+        this._duration = duration;
+        if(this.parent != undefined){
+            this.parent.updateDuration();
+        }
     }
 
     setParent(parent: AnimatorContainer){
