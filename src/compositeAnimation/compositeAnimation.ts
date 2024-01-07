@@ -180,7 +180,6 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         const scale = duration / originalDuration;
         const newDelayTime = this.delayTime * scale;
         const newDragTime = this.dragTime * scale;
-        const newDuration = this._duration * scale;
         this.delayTime = newDelayTime;
         this.dragTime = newDragTime;
         this.animations.forEach((animation)=>{
