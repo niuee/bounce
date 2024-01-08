@@ -18,6 +18,8 @@ export interface Animator{
 
 export interface AnimatorContainer {
     updateDuration(): void;
+    checkCyclicChildren(): boolean;
+    containsAnimation(animationInInterest: Animator): boolean;
 }
 
 export class CompositeAnimation implements Animator, AnimatorContainer{
@@ -35,7 +37,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     private reverse: boolean;
 
-    constructor(animations: Map<string, {animator: Animator, startTime?: number}>, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setupFn: Function = ()=>{}, tearDownFn: Function = ()=>{}){
+    constructor(animations: Map<string, {animator: Animator, startTime?: number}> = new Map(), loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setupFn: Function = ()=>{}, tearDownFn: Function = ()=>{}){
         this.animations = animations;
         this._duration = 0;
         this.calculateDuration();
@@ -213,11 +215,17 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     addAnimation(name: string, animation: Animator, startTime: number = 0){
+        if(this.animations.has(name)){
+            return;
+        }
+        if(this.parent !== undefined && this.parent.containsAnimation(animation)){
+            return;
+        }
         this.animations.set(name, {animator: animation, startTime: startTime});
+        animation.setParent(this);
         if(this.localTime > startTime){
             animation.animate(this.localTime - startTime);
         }
-        animation.setParent(this);
         const endTime = startTime + animation.duration;
         this._duration = Math.max(this._duration, endTime);
         if(this.parent != undefined){
@@ -327,6 +335,9 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     updateDuration(): void {
+        if(this.checkCyclicChildren()){
+            return;
+        }
         this.calculateDuration();
         if(this.parent != undefined){
             this.parent.updateDuration();
@@ -350,6 +361,56 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     set loops(loop: boolean) {
         this.loop = loop;
+    }
+
+    checkCyclicChildren(): boolean {
+        const allChildren: Animator[] = [];
+        allChildren.push(this);
+        const visited = new Set<Animator>();
+        while(allChildren.length > 0){
+            const current = allChildren.pop();
+            if(current == undefined){
+                continue;
+            }
+            if(visited.has(current)){
+                return true;
+            }
+            visited.add(current);
+            if(current instanceof CompositeAnimation){
+                current.animations.forEach((animation) => {
+                    allChildren.push(animation.animator);
+                });
+            }
+        }
+        return false;
+    }
+
+    containsAnimation(animationInInterest: Animator): boolean {
+        if(this.parent !== undefined){
+            return this.parent.containsAnimation(animationInInterest);
+        }
+        const allChildren: Animator[] = [];
+        allChildren.push(this);
+        const visited = new Set<Animator>();
+        while(allChildren.length > 0){
+            const current = allChildren.pop();
+            if(current == undefined){
+                continue;
+            }
+            if(current == animationInInterest){
+                return true;
+            }
+            if(visited.has(current)){
+                continue;
+            }
+            visited.add(current);
+            if(current instanceof CompositeAnimation){
+                current.animations.forEach((animation) => {
+                    allChildren.push(animation.animator);
+                });
+            }
+        }
+        return false;
     }
 }
 

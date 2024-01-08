@@ -223,4 +223,21 @@ describe("Composite Animation Tests", ()=>{
         }
     });
 
+    test("Check if the composite animation is a child of its own children; thus a cyclic tree", ()=>{
+        let thirdAnimation: Animation<number>;
+        let animatedNumber2: number;
+        animatedNumber2 = 0;
+        let numberKeyframes: Keyframe<number>[] = [
+            {percentage: 0, value: 0},
+            {percentage: 0.5, value: 3},
+            {percentage: 1, value: 10},
+        ];
+        thirdAnimation = new Animation(numberKeyframes, (value: number)=>{animatedNumber2 = value}, new NumberAnimationHelper());
+        let animationMap = new Map<string, {animator: Animator, startTime: number}>();
+        const secondCompositeAnimation = new CompositeAnimation(animationMap);
+        secondCompositeAnimation.addAnimation("third", thirdAnimation);
+        testAnimator.addAnimation("third", secondCompositeAnimation);
+        secondCompositeAnimation.addAnimation("test", testAnimator);
+        expect(testAnimator.checkCyclicChildren()).toBe(false);
+    });
 });
