@@ -1,6 +1,6 @@
 import { Point } from "point2point";
 import { AnimationSequence, Keyframe, PointAnimationHelper, AnimationGroup, AnimationGroupLegacy, AnimationSequenceLegacy} from "../src";
-import * as EasingFunctions from "../src/easeFunctions";
+import * as EasingFunctions from "../src/ease-functions";
 
 class AnimationMockClass {
     private position: Point;

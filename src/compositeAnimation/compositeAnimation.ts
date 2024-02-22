@@ -1,5 +1,5 @@
-import { AnimatableAttributeHelper } from "../animatableAttribute";
-import * as easeFunctions from "../easeFunctions";
+import { AnimatableAttributeHelper } from "../animatable-attribute";
+import * as easeFunctions from "../ease-functions";
 
 export interface Animator{
     loops: boolean;

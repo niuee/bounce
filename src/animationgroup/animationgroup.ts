@@ -1,5 +1,5 @@
-import * as easeFunctions from "../easeFunctions";
-import { AnimatableAttributeHelper } from "../animatableAttribute";
+import * as easeFunctions from "../ease-functions";
+import { AnimatableAttributeHelper } from "../animatable-attribute";
 import { Keyframe } from "../compositeAnimation";
 
 export type AnimationSequence<T> = {
