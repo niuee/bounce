@@ -1,4 +1,4 @@
-import {Animation, Animator, CompositeAnimation, AnimationSequence, Keyframe, PointAnimationHelper, NumberAnimationHelper} from "../src";
+import {Animation, Animator, CompositeAnimation, Keyframe, PointAnimationHelper, NumberAnimationHelper} from "../src";
 import { Point } from "point2point";
 
 
@@ -33,12 +33,6 @@ describe("Animation Class Tests", ()=>{
         positionKeyframes.push({percentage: 1, value: {x: 10, y: 10}});
 
         exampleObj = new AnimationMockClass({x: 0, y: 0});
-        const positionAnimationSequence: AnimationSequence<Point> = {
-            duration: 1,
-            keyframes: positionKeyframes,
-            applyAnimationValue: (value: Point) => {exampleObj.setPosition(value);},
-            animatableAttributeHelper: new PointAnimationHelper(),
-        };
         testAnimator = new Animation(positionKeyframes, (value: Point)=>{exampleObj.setPosition(value)}, new PointAnimationHelper());
     });
 
