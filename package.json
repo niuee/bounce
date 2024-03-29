@@ -2,13 +2,14 @@
   "name": "@niuee/bounce",
   "version": "0.0.1",
   "description": "",
-  "main": "./build/cjs/index.js",
-  "module": "./build/esm/index.js",
-  "types": "./build/types.d.ts",
+  "main": "./build/index.js",
+  "module": "./build/index.js",
+  "types": "./build/index.d.ts",
   "scripts": {
-    "start": "node ./build/index.js",
-    "test": "jest",
-    "build": "rollup -c --bundleConfigAsCjs"
+    "build": "pnpm run rollup && pnpm run move-package",
+    "rollup": "rollup -c --bundleConfigAsCjs",
+    "move-package": "node ./scripts/move-package.mjs",
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
