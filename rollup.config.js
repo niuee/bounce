@@ -1,10 +1,9 @@
 import typescript from '@rollup/plugin-typescript';
+// import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
-import dts from "rollup-plugin-dts";
 import terser from "@rollup/plugin-terser";
 import path from 'path';
 const packageJson = require("./package.json");
-
 
 
 const fs = require('fs');
@@ -14,18 +13,11 @@ const plugins = [
     typescript({
       tsconfig: './tsconfig.json',
       declaration: false,
-      // useTsconfigDeclarationDir: true,
     }),
     terser({
       mangle: false,
     }),
 ]
-
-export const getComponentsFolders = (entry) => {
-   const dirs = fs.readdirSync(entry)
-   const dirsWithoutIndex = dirs.filter(name => name !== 'index.ts' && name !== 'utils')
-   return dirsWithoutIndex
-};
 
 export const getComponentsFoldersRecursive = (entry) => {
   const finalListOfDirs = [];
@@ -50,7 +42,6 @@ export const getComponentsFoldersRecursive = (entry) => {
 
 console.log(getComponentsFoldersRecursive('./src'));
 
-
 const folderBuilds = getComponentsFoldersRecursive('./src').map((folder) => {
   return {
     input: `src/${folder}/index.ts`,
@@ -60,6 +51,11 @@ const folderBuilds = getComponentsFoldersRecursive('./src').map((folder) => {
       sourcemap: true,
       format: 'esm',
     },
+    // {
+    //   file: `build/${folder}/index.cjs`,
+    //   sourcemap: true,
+    //   format: 'cjs',
+    // }
     ],
     plugins: [
         ...plugins,
@@ -67,23 +63,9 @@ const folderBuilds = getComponentsFoldersRecursive('./src').map((folder) => {
   };
 });
 
-
-const types = getComponentsFoldersRecursive('./src').map((folder) => {
-  return {
-    input: `src/${folder}/index.ts`,
-    output: {
-      file: `build/${folder}/index.d.ts`,
-      format: "es",
-    },
-    plugins: [
-      dts.default(),
-    ],
-  };
-
-});
-
 export default [
   ...folderBuilds,
+  // the overarching package build
   {
     input: 'src/index.ts',
     output: [{
@@ -99,13 +81,9 @@ export default [
     ],
     plugins: [
       resolve(),
-      typescript({
-        tsconfig: './tsconfig.json',
-        declaration: true,
-        declarationDir: "./build",
-      }),
+      typescript(),
       terser({
-        mangle: false,
+        mangle: true,
       }),
     ],
   },

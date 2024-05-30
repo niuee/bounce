@@ -2,18 +2,20 @@
   "name": "@niuee/bounce",
   "version": "0.0.2",
   "description": "",
-  "main": "./build/index.js",
-  "module": "./build/index.js",
+  "main": "./build/index.cjs",
+  "module": "./build/index.mjs",
   "types": "./build/index.d.ts",
   "scripts": {
-    "build": "pnpm run rollup && pnpm run move-package",
+    "build": "pnpm run rollup && pnpm run gen-declaration && pnpm run move-package",
     "rollup": "rollup -c --bundleConfigAsCjs",
     "move-package": "node ./scripts/move-package.mjs",
+    "gen-declaration": "pnpm exec tsc --declaration --emitDeclarationOnly && pnpm exec tsc-alias",
     "test": "jest"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
+    "@niuee/bcurve": "../bend",
     "@rollup/plugin-node-resolve": "^15.1.0",
     "@rollup/plugin-terser": "^0.4.3",
     "@rollup/plugin-typescript": "^11.1.2",
@@ -23,8 +25,8 @@
     "rollup": "^3.26.2",
     "rollup-plugin-dts": "^5.3.0",
     "ts-jest": "^29.0.5",
+    "tsc-alias": "^1.8.10",
     "tslib": "^2.6.0",
-    "typescript": "^5.0.3",
-    "@niuee/bcurve": "../bend"
+    "typescript": "^5.0.3"
   }
 }

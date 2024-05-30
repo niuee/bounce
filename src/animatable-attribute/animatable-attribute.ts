@@ -43,6 +43,20 @@ export class StringAnimationHelper implements AnimatableAttributeHelper<string>{
     }
 }
 
+export class IntegerAnimationHelper implements AnimatableAttributeHelper<number>{
+    constructor(){
+
+    }
+
+    lerp(ratio: number, start: Keyframe<number>, end: Keyframe<number>): number {
+        const percentageScale = (ratio - start.percentage) / (end.percentage - start.percentage)
+        // if percentageScale is negative that means it's before the start value just return start value 
+        // if percentageScale is more than 1 that means it's after the end value just return the end value
+        // if percentageScale is less than 0.5 return the start value else return the end value
+        return percentageScale < 0 || percentageScale < 0.5 ? start.value : end.value;
+    }
+}
+
 export type RGB = {r: number, g: number, b: number};
 
 export class RGBAnimationHelper implements AnimatableAttributeHelper<RGB> {
