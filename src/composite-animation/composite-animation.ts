@@ -4,6 +4,9 @@ import * as easeFunctions from "../ease-functions";
 export interface Animator{
     loops: boolean;
     duration: number;
+    delay: number;
+    drag: number;
+    nonCascadingDuration(newDuration: number): void;
     startAnimation(): void;
     stopAnimation(): void;
     pauseAnimation(): void;
@@ -14,6 +17,7 @@ export interface Animator{
     setParent(parent: AnimatorContainer): void;
     detachParent(): void;
     toggleReverse(reverse: boolean): void;
+    onEnd(callback: Function): void;
     playing: boolean;
 }
 
@@ -32,11 +36,11 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     private loop: boolean;
     private setUpFn: Function;
     private tearDownFn: Function;
-    private dragTime: number;
-    private delayTime: number;
+    private _dragTime: number;
+    private _delayTime: number;
     private parent: AnimatorContainer | undefined;
 
-    private callbacks: Map<string, Function[]>;
+    private endCallbacks: Function[] = [];
 
     private reverse: boolean;
 
@@ -49,15 +53,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         this.loop = loop;
         this.setUpFn = setupFn;
         this.tearDownFn = tearDownFn;
-        this.delayTime = 0;
-        this.dragTime = 0;
+        this._delayTime = 0;
+        this._dragTime = 0;
         this.parent = parent;
-        this.callbacks = new Map();
         this.animations.forEach((animation) => {
             animation.animator.setParent(this);
         });
         this.reverse = false;
-        console.log("Composite Animation created");
     }
 
     toggleReverse(reverse: boolean){
@@ -79,7 +81,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     animate(deltaTime: number): void {
-        if(!this.onGoing || this.localTime > this._duration + this.delayTime + this.dragTime || this.localTime < 0 || this.animations.size == 0){
+        if(!this.onGoing || this.localTime > this._duration + this._delayTime + this._dragTime || this.localTime < 0 || this.animations.size == 0){
             return;
         }
         this.localTime += deltaTime;
@@ -88,10 +90,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     checkTerminalAndLoop(){
-        if(this.localTime > this._duration + this.delayTime + this.dragTime){
+        if(this.localTime >= this._duration + this._delayTime + this._dragTime){
             this.onGoing = false;
+            this.endCallbacks.forEach((callback) => {
+                queueMicrotask(()=>{callback()});
+            });
         }
-        if(this.localTime > this._duration + this.delayTime + this.dragTime && this.loop){
+        if(this.localTime >= this._duration + this._delayTime + this._dragTime && this.loop){
             this.localTime = 0;
             this.onGoing = true;
         }
@@ -99,7 +104,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     animateChildren(deltaTime: number){
         const prevLocalTime = this.localTime - deltaTime;
-        if(this.localTime < this.delayTime){
+        if(this.localTime < this._delayTime){
             return;
         }
         this.animations.forEach((animation, name: string) => {
@@ -110,13 +115,10 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
                 this.wrapUpAnimator({animator: animation.animator, startTime: animation.startTime, name: name}, prevLocalTime);
                 return;
             }
-            if(prevLocalTime - this.delayTime < animation.startTime){
-                animation.animator.animate(this.localTime - this.delayTime - animation.startTime);
+            if(prevLocalTime - this._delayTime < animation.startTime){
+                animation.animator.animate(this.localTime - this._delayTime - animation.startTime);
             } else {
                 animation.animator.animate(deltaTime);
-            }
-            if(this.localTime == animation.startTime + animation.animator.duration){
-                console.log("animation played to the end");
             }
         });
     }
@@ -125,7 +127,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         if(animation.startTime == undefined){
             animation.startTime = 0;
         }
-        if(this.localTime - this.delayTime >= animation.startTime && this.localTime - this.delayTime <= animation.startTime + animation.animator.duration){
+        if(this.localTime - this._delayTime >= animation.startTime && this.localTime - this._delayTime <= animation.startTime + animation.animator.duration){
             return true;
         }
         return false;
@@ -135,13 +137,9 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         if(animation.startTime == undefined){
             animation.startTime = 0;
         }
-        if(this.localTime - this.delayTime > animation.startTime + animation.animator.duration && prevLocalTime - this.delayTime < animation.startTime + animation.animator.duration){
-            animation.animator.animate(animation.startTime + animation.animator.duration - (prevLocalTime - this.delayTime));
-            this.callbacks.get(animation.name)?.forEach((callback) => {
-                callback();
-            });
+        if(this.localTime - this._delayTime > animation.startTime + animation.animator.duration && prevLocalTime - this._delayTime < animation.startTime + animation.animator.duration){
+            animation.animator.animate(animation.startTime + animation.animator.duration - (prevLocalTime - this._delayTime));
             if(animation.animator.loops){
-                console.log("looping reset");
                 animation.animator.startAnimation();
             }
         }
@@ -182,7 +180,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     }
 
     get duration(): number {
-        return this._duration + this.delayTime + this.dragTime;
+        return this._duration + this._delayTime + this._dragTime;
     }
 
     // delayTime and dragTime are 
@@ -190,22 +188,45 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         if(duration < 0){
             return;
         }
-        const originalDuration = this._duration + this.delayTime + this.dragTime;
+        const originalDuration = this._duration + this._delayTime + this._dragTime;
         const scale = duration / originalDuration;
-        const newDelayTime = this.delayTime * scale;
-        const newDragTime = this.dragTime * scale;
-        this.delayTime = newDelayTime;
-        this.dragTime = newDragTime;
+        const newDelayTime = this._delayTime * scale;
+        const newDragTime = this._dragTime * scale;
+        this._delayTime = newDelayTime;
+        this._dragTime = newDragTime;
         this.animations.forEach((animation)=>{
             if(animation.startTime == undefined){
                 animation.startTime = 0;
             }
             animation.startTime *= scale;
-            animation.animator.duration *= scale;
+            const newDuration = animation.animator.duration * scale;
+            animation.animator.nonCascadingDuration(newDuration);
         });
+        this.calculateDuration();
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
+    }
+
+    nonCascadingDuration(newDuration: number): void {
+        if(newDuration < 0){
+            return;
+        }
+        const originalDuration = this._duration + this._delayTime + this._dragTime;
+        const scale = newDuration / originalDuration;
+        const newDelayTime = this._delayTime * scale;
+        const newDragTime = this._dragTime * scale;
+        this._delayTime = newDelayTime;
+        this._dragTime = newDragTime;
+        this.animations.forEach((animation)=>{
+            if(animation.startTime == undefined){
+                animation.startTime = 0;
+            }
+            animation.startTime *= scale;
+            const newDuration = animation.animator.duration * scale;
+            animation.animator.nonCascadingDuration(newDuration);
+        });
+        this.calculateDuration();
     }
 
     getTrueDuration(): number{
@@ -234,11 +255,6 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             return;
         }
         this.animations.set(name, {animator: animation, startTime: startTime});
-        console.log("animation name", name);
-        if(this.callbacks.get(name) == undefined || this.callbacks.get(name).length == 0){
-            this.callbacks.set(name, []);
-        }
-        this.callbacks.get(name)?.push(endCallback);
         animation.setParent(this);
         if(this.localTime > startTime){
             animation.animate(this.localTime - startTime);
@@ -323,29 +339,37 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         }
     }
 
-    delay(delayTime: number){
-        this.delayTime = delayTime;
+    set delay(delayTime: number){
+        this._delayTime = delayTime;
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
     }
 
-    drag(dragTime: number){
-        this.dragTime = dragTime;
+    get delay(): number{
+        return this._delayTime;
+    }
+
+    set drag(dragTime: number){
+        this._dragTime = dragTime;
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
+    }
+
+    get drag(): number {
+        return this._dragTime;
     }
 
     removeDelay(){
-        this.delayTime = 0;
+        this._delayTime = 0;
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
     }
 
     removeDrag(){
-        this.dragTime = 0;
+        this._dragTime = 0;
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
@@ -402,6 +426,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         return false;
     }
 
+    forceToggleLoop(loop: boolean){
+        this.loop = true;
+        this.animations.forEach((animation) => {
+            animation.animator.loops = true;
+        });
+    }
+
     containsAnimation(animationInInterest: Animator): boolean {
         if(this.parent !== undefined){
             return this.parent.containsAnimation(animationInInterest);
@@ -430,6 +461,10 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         return false;
     }
 
+    onEnd(callback: Function){
+        this.endCallbacks.push(callback);
+    }
+
     get playing(): boolean {
         return this.onGoing;
     }
@@ -453,6 +488,7 @@ export class Animation<T> implements Animator{
     private dragTime: number = 0;
 
     private reverse: boolean = false;
+    private endCallbacks: Function[] = [];
 
     constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this._duration = duration;
@@ -499,14 +535,14 @@ export class Animation<T> implements Animator{
     }
 
     animate(deltaTime: number){
-        if(this.onGoing && this.localTime <= this._duration){
+        if(this.onGoing && this.localTime >= this.delayTime && this.localTime <= this.delayTime + this._duration + this.dragTime){
             this.localTime += deltaTime;
-            let localTimePercentage = this.localTime / this._duration;
+            let localTimePercentage = this.localTime / (this.delayTime + this._duration + this.dragTime);
             let targetPercentage = this.easeFn(localTimePercentage);
             if (localTimePercentage > 1){
                 targetPercentage = this.easeFn(1);
             }
-            let value: any;
+            let value: T;
             // console.log("currentKeyframeIndex", this.currentKeyframeIndex, "length", this.keyFrames.length);
             if(this.currentKeyframeIndex < this.keyframes.length && (this.reverse ? 1 - this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage : this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage) ){
                 value = this.keyframes[this.currentKeyframeIndex].value;
@@ -523,10 +559,13 @@ export class Animation<T> implements Animator{
                 }
             }
             this.applyAnimationValue(value);
-            if(this.localTime >= this._duration){
+            if(this.localTime >= this._duration + this.dragTime + this.delayTime){
+                this.endCallbacks.forEach((callback) => {
+                    queueMicrotask(()=>{callback()});
+                });
                 this.onGoing = false;
             }
-            if((this.localTime >= this._duration)&& this.loop){
+            if((this.localTime >= this._duration + this.delayTime + this.dragTime) && this.loop){
                 this.localTime = 0;
                 this.currentKeyframeIndex = 0;
                 this.onGoing = true;
@@ -598,13 +637,59 @@ export class Animation<T> implements Animator{
         if(duration < 0){
             return;
         }
-        if(this.localTime > duration && this.onGoing){
-            this.localTime = duration;
-        }
+        const originalDuration = this._duration + this.delayTime + this.dragTime;
+        const scale = duration / originalDuration;
+        const newDelayTime = this.delayTime * scale;
+        const newDragTime = this.dragTime * scale;
+        this.delayTime = newDelayTime;
+        this.dragTime = newDragTime;
         this._duration = duration;
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
+    }
+
+    nonCascadingDuration(newDuration: number): void {
+        if(newDuration < 0){
+            return;
+        }
+        const originalDuration = this._duration + this.delayTime + this.dragTime;
+        const scale = newDuration / originalDuration;
+        const newDelayTime = this.delayTime * scale;
+        const newDragTime = this.dragTime * scale;
+        this.delayTime = newDelayTime;
+        this.dragTime = newDragTime;
+        this._duration = newDuration;
+    }
+
+    get delay(): number {
+        return this.delayTime;
+    }
+
+    set delay(delayTime: number){
+        this.delayTime = delayTime;
+        if(this.parent != undefined){
+            this.parent.updateDuration();
+        }
+    }
+
+    get drag(): number {
+        return this.dragTime;
+    }
+
+    set drag(dragTime: number){
+        this.dragTime = dragTime;
+        if(this.parent != undefined){
+            this.parent.updateDuration();
+        }
+    }
+
+    get trueDuration(): number {
+        return this._duration;
+    }
+
+    set trueDuration(duration: number){
+        this._duration = duration;
     }
 
     setParent(parent: AnimatorContainer){
@@ -629,6 +714,10 @@ export class Animation<T> implements Animator{
 
     set easeFunction(easeFn: (percentage: number) => number){
         this.easeFn = easeFn;
+    }
+
+    onEnd(callback: Function){
+        this.endCallbacks.push(callback);
     }
 }
 
