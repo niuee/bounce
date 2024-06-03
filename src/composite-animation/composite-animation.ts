@@ -535,8 +535,11 @@ export class Animation<T> implements Animator{
     }
 
     animate(deltaTime: number){
-        if(this.onGoing && this.localTime >= this.delayTime && this.localTime <= this.delayTime + this._duration + this.dragTime){
-            this.localTime += deltaTime;
+        if(this.onGoing != true || this.localTime < 0) {
+            return;
+        }
+        this.localTime += deltaTime;
+        if(this.localTime >= this.delayTime && this.localTime <= this.delayTime + this._duration + this.dragTime){
             let localTimePercentage = this.localTime / (this.delayTime + this._duration + this.dragTime);
             let targetPercentage = this.easeFn(localTimePercentage);
             if (localTimePercentage > 1){
