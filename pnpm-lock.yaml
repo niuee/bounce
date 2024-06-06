@@ -5,9 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 devDependencies:
-  '@niuee/bcurve':
-    specifier: ../bend
-    version: link:../bend
   '@rollup/plugin-node-resolve':
     specifier: ^15.1.0
     version: 15.2.3(rollup@3.29.4)

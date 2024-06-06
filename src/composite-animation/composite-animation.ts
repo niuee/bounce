@@ -162,9 +162,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     startAnimation(): void {
         this.onGoing = true;
         this.setUp();
-        if(this.localTime > 0){
-            this.localTime = 0;
-        }
+        this.localTime = 0;
         this.animations.forEach((animation) => {
             animation.animator.startAnimation();
         });
@@ -617,6 +615,7 @@ export class Animation<T> implements Animator{
     }
 
     setUp(): void {
+        this.applyAnimationValue(this.keyframes[0].value);
         this.setUpFn();
     }
 
