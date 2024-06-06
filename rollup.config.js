@@ -91,11 +91,11 @@ export default [
     // distribution for direct browser usage
     input: 'src/index.ts',
     output: [
-    {
-      file: 'dist/bounce.js',
-      format: 'esm',
-      sourcemap: true,
-    },
+    // {
+    //   file: 'dist/bounce.js',
+    //   format: 'esm',
+    //   sourcemap: true,
+    // },
     {
       file: 'build/umd/index.js',
       format: 'umd',
