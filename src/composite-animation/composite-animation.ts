@@ -98,7 +98,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             });
         }
         if(this.localTime >= this._duration + this._delayTime + this._dragTime && this.loop){
-            this.startAnimation();
+            this.localTime = 0;
+            this.onGoing = true;
+            this.animations.forEach((animation) => {
+                if(animation.animator.loops){
+                    animation.animator.startAnimation();
+                }
+            });
         }
     }
 
