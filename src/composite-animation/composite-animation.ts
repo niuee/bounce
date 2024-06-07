@@ -48,7 +48,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         this.animations = animations;
         this._duration = 0;
         this.calculateDuration();
-        this.localTime = this._duration + 0.1;
+        this.localTime = -1;
         this.onGoing = false;
         this.loop = loop;
         this.setUpFn = setupFn;
@@ -91,14 +91,14 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
 
     checkTerminalAndLoop(){
         if(this.localTime >= this._duration + this._delayTime + this._dragTime){
+            console.log("composite animation end");
             this.onGoing = false;
             this.endCallbacks.forEach((callback) => {
                 queueMicrotask(()=>{callback()});
             });
         }
         if(this.localTime >= this._duration + this._delayTime + this._dragTime && this.loop){
-            this.localTime = 0;
-            this.onGoing = true;
+            this.startAnimation();
         }
     }
 
@@ -138,10 +138,10 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             animation.startTime = 0;
         }
         if(this.localTime - this._delayTime > animation.startTime + animation.animator.duration && prevLocalTime - this._delayTime < animation.startTime + animation.animator.duration){
+            console.log("wrap up", animation.name);
+            console.log("time remaining", animation.startTime + animation.animator.duration - (prevLocalTime - this._delayTime));
+            
             animation.animator.animate(animation.startTime + animation.animator.duration - (prevLocalTime - this._delayTime));
-            if(animation.animator.loops){
-                animation.animator.startAnimation();
-            }
         }
     }
 
@@ -488,7 +488,7 @@ export class Animation<T> implements Animator{
     private reverse: boolean = false;
     private endCallbacks: Function[] = [];
 
-    constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
+    constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1000, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this._duration = duration;
         this.keyframes = keyFrames;
         this.animatableAttributeHelper = animatableAttributeHelper;
@@ -516,7 +516,7 @@ export class Animation<T> implements Animator{
 
     stopAnimation(){
         this.onGoing = false;
-        this.localTime = this._duration + 0.1;
+        this.localTime = this._duration + this.dragTime + this.delayTime + 0.1;
         this.tearDown();
     }
 
@@ -537,8 +537,12 @@ export class Animation<T> implements Animator{
             return;
         }
         this.localTime += deltaTime;
-        if(this.localTime >= this.delayTime && this.localTime <= this.delayTime + this._duration + this.dragTime){
-            let localTimePercentage = this.localTime / (this.delayTime + this._duration + this.dragTime);
+        if(this.localTime >= this.delayTime && (this.localTime <= this.delayTime + this._duration + this.dragTime || this.localTime - deltaTime <= this.delayTime + this._duration + this.dragTime)){
+            console.log("local time", this.localTime);
+            console.log("duration", this.duration);
+            console.log("local time would trigger end", this.localTime >= this._duration + this.delayTime + this.dragTime);
+            console.log("delta time", deltaTime);
+            let localTimePercentage = (this.localTime - this.delayTime) / (this._duration);
             let targetPercentage = this.easeFn(localTimePercentage);
             if (localTimePercentage > 1){
                 targetPercentage = this.easeFn(1);
@@ -561,15 +565,17 @@ export class Animation<T> implements Animator{
             }
             this.applyAnimationValue(value);
             if(this.localTime >= this._duration + this.dragTime + this.delayTime){
+                console.log("animation should end");
                 this.endCallbacks.forEach((callback) => {
                     queueMicrotask(()=>{callback()});
                 });
                 this.onGoing = false;
             }
             if((this.localTime >= this._duration + this.delayTime + this.dragTime) && this.loop){
+                // this.startAnimation();
                 this.localTime = 0;
-                this.currentKeyframeIndex = 0;
                 this.onGoing = true;
+                this.currentKeyframeIndex = 0;
             }
         }
     }
@@ -632,7 +638,7 @@ export class Animation<T> implements Animator{
     }
 
     get duration(): number {
-        return this._duration;
+        return this._duration + this.delayTime + this.dragTime;
     }
 
     set duration(duration: number) {
@@ -645,7 +651,7 @@ export class Animation<T> implements Animator{
         const newDragTime = this.dragTime * scale;
         this.delayTime = newDelayTime;
         this.dragTime = newDragTime;
-        this._duration = duration;
+        this._duration = this._duration * scale;
         if(this.parent != undefined){
             this.parent.updateDuration();
         }
@@ -692,6 +698,9 @@ export class Animation<T> implements Animator{
 
     set trueDuration(duration: number){
         this._duration = duration;
+        if(this.parent != undefined){
+            this.parent.updateDuration();
+        }
     }
 
     setParent(parent: AnimatorContainer){
