@@ -13,11 +13,13 @@ export interface Animator{
     resumeAnimation(): void;
     animate(deltaTime: number): void;
     setUp(): void;
+    resetAnimationState(): void;
     tearDown(): void;
     setParent(parent: AnimatorContainer): void;
     detachParent(): void;
     toggleReverse(reverse: boolean): void;
     onEnd(callback: Function): void;
+    onStart(callback: Function): void;
     playing: boolean;
 }
 
@@ -41,6 +43,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     private parent: AnimatorContainer | undefined;
 
     private endCallbacks: Function[] = [];
+    private startCallbacks: Function[] = [];
 
     private reverse: boolean;
 
@@ -85,13 +88,19 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             return;
         }
         this.localTime += deltaTime;
+        if (this.localTime - deltaTime <= 0){
+            // console.log("composite animation start");
+            this.startCallbacks.forEach((callback) => {
+                queueMicrotask(()=>{callback()});
+            });
+        }
         this.animateChildren(deltaTime);
         this.checkTerminalAndLoop();
     }
 
     checkTerminalAndLoop(){
         if(this.localTime >= this._duration + this._delayTime + this._dragTime){
-            console.log("composite animation end");
+            // console.log("composite animation end");
             this.onGoing = false;
             this.endCallbacks.forEach((callback) => {
                 queueMicrotask(()=>{callback()});
@@ -144,8 +153,8 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             animation.startTime = 0;
         }
         if(this.localTime - this._delayTime > animation.startTime + animation.animator.duration && prevLocalTime - this._delayTime < animation.startTime + animation.animator.duration){
-            console.log("wrap up", animation.name);
-            console.log("time remaining", animation.startTime + animation.animator.duration - (prevLocalTime - this._delayTime));
+            // console.log("wrap up", animation.name);
+            // console.log("time remaining", animation.startTime + animation.animator.duration - (prevLocalTime - this._delayTime));
             
             animation.animator.animate(animation.startTime + animation.animator.duration - (prevLocalTime - this._delayTime));
         }
@@ -231,6 +240,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             animation.animator.nonCascadingDuration(newDuration);
         });
         this.calculateDuration();
+    }
+
+    resetAnimationState(): void {
+        this.onGoing = false;
+        this.animations.forEach((animation) => {
+            animation.animator.resetAnimationState();
+        });
     }
 
     getTrueDuration(): number{
@@ -469,6 +485,11 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         this.endCallbacks.push(callback);
     }
 
+    onStart(callback: Function){
+        this.startCallbacks.push(callback);
+    }
+
+
     get playing(): boolean {
         return this.onGoing;
     }
@@ -493,6 +514,7 @@ export class Animation<T> implements Animator{
 
     private reverse: boolean = false;
     private endCallbacks: Function[] = [];
+    private startCallbacks: Function[] = [];
 
     constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1000, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this._duration = duration;
@@ -543,11 +565,24 @@ export class Animation<T> implements Animator{
             return;
         }
         this.localTime += deltaTime;
+        // console.log("--------------------");
+        // console.log("local time", this.localTime);
+        // console.log("delta time", deltaTime);
+        if(this.localTime - deltaTime <= 0 && deltaTime > 0){
+            // console.log("--------------------");
+            // console.log("current localtime", this.localTime);
+            // console.log("current delta time", deltaTime);
+            // console.log("previous local time", this.localTime - deltaTime);
+            // console.log("animation start");
+            this.startCallbacks.forEach((callback) => {
+                queueMicrotask(()=>{callback()});
+            });
+        }
         if(this.localTime >= this.delayTime && (this.localTime <= this.delayTime + this._duration + this.dragTime || this.localTime - deltaTime <= this.delayTime + this._duration + this.dragTime)){
-            console.log("local time", this.localTime);
-            console.log("duration", this.duration);
-            console.log("local time would trigger end", this.localTime >= this._duration + this.delayTime + this.dragTime);
-            console.log("delta time", deltaTime);
+            // console.log("local time", this.localTime);
+            // console.log("duration", this.duration);
+            // console.log("local time would trigger end", this.localTime >= this._duration + this.delayTime + this.dragTime);
+            // console.log("delta time", deltaTime);
             let localTimePercentage = (this.localTime - this.delayTime) / (this._duration);
             let targetPercentage = this.easeFn(localTimePercentage);
             if (localTimePercentage > 1){
@@ -571,7 +606,7 @@ export class Animation<T> implements Animator{
             }
             this.applyAnimationValue(value);
             if(this.localTime >= this._duration + this.dragTime + this.delayTime){
-                console.log("animation should end");
+                // console.log("animation should end");
                 this.endCallbacks.forEach((callback) => {
                     queueMicrotask(()=>{callback()});
                 });
@@ -676,6 +711,19 @@ export class Animation<T> implements Animator{
         this._duration = newDuration;
     }
 
+    resetAnimationState(): void {
+        this.onGoing = false;
+        this.applyAnimationValue(this.keyframes[0].value);
+        this.currentKeyframeIndex = 0;
+        this.setUp();
+    }
+
+    wrapUp(): void {
+        this.onGoing = false;
+        this.localTime = this._duration + this.dragTime + this.delayTime + 0.1;
+        this.currentKeyframeIndex = 0;
+    }
+
     get delay(): number {
         return this.delayTime;
     }
@@ -735,6 +783,10 @@ export class Animation<T> implements Animator{
 
     onEnd(callback: Function){
         this.endCallbacks.push(callback);
+    }
+
+    onStart(callback: Function): void {
+        this.startCallbacks.push(callback);
     }
 }
 
