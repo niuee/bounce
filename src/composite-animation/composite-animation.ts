@@ -18,10 +18,14 @@ export interface Animator{
     setParent(parent: AnimatorContainer): void;
     detachParent(): void;
     toggleReverse(reverse: boolean): void;
-    onEnd(callback: Function): void;
-    onStart(callback: Function): void;
+    onEnd(callback: Function): UnSubscribe;
+    onStart(callback: Function): UnSubscribe;
+    clearOnStart(): void;
+    clearOnEnd(): void;
     playing: boolean;
 }
+
+export type UnSubscribe = () => void;
 
 export interface AnimatorContainer {
     updateDuration(): void;
@@ -88,7 +92,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             return;
         }
         this.localTime += deltaTime;
-        if (this.localTime - deltaTime <= 0){
+        if (this.localTime - deltaTime <= 0 && deltaTime > 0){
             // console.log("composite animation start");
             this.startCallbacks.forEach((callback) => {
                 queueMicrotask(()=>{callback()});
@@ -481,14 +485,27 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         return false;
     }
 
-    onEnd(callback: Function){
+    onEnd(callback: Function): UnSubscribe{
         this.endCallbacks.push(callback);
+        return ()=>{
+            this.endCallbacks = this.endCallbacks.filter((cb) => cb != callback);
+        }
     }
 
-    onStart(callback: Function){
+    onStart(callback: Function): UnSubscribe{
         this.startCallbacks.push(callback);
+        return ()=>{
+            this.startCallbacks = this.startCallbacks.filter((cb) => cb != callback);
+        }
     }
 
+    clearOnEnd(): void {
+        this.endCallbacks = [];
+    }
+
+    clearOnStart(): void {
+        this.startCallbacks = [];
+    }
 
     get playing(): boolean {
         return this.onGoing;
@@ -781,12 +798,26 @@ export class Animation<T> implements Animator{
         this.easeFn = easeFn;
     }
 
-    onEnd(callback: Function){
+    onEnd(callback: Function): UnSubscribe{
         this.endCallbacks.push(callback);
+        return ()=>{
+            this.endCallbacks = this.endCallbacks.filter((cb) => cb != callback);
+        }
     }
 
-    onStart(callback: Function): void {
+    onStart(callback: Function): UnSubscribe{
         this.startCallbacks.push(callback);
+        return ()=>{
+            this.startCallbacks = this.startCallbacks.filter((cb) => cb != callback);
+        }
+    }
+
+    clearOnEnd(): void {
+        this.endCallbacks = [];
+    }
+
+    clearOnStart(): void {
+        this.startCallbacks = [];
     }
 }
 
