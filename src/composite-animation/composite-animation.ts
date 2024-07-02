@@ -40,6 +40,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     private _duration: number;
     private onGoing: boolean;
     private loop: boolean;
+    private playedTime: number;
     private setUpFn: Function;
     private tearDownFn: Function;
     private _dragTime: number;
@@ -67,6 +68,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
             animation.animator.setParent(this);
         });
         this.reverse = false;
+        this.playedTime = 0;
     }
 
     toggleReverse(reverse: boolean){
@@ -105,11 +107,13 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     checkTerminalAndLoop(){
         if(this.localTime >= this._duration + this._delayTime + this._dragTime){
             // console.log("composite animation end");
+            this.playedTime += 1;
             this.onGoing = false;
             this.endCallbacks.forEach((callback) => {
                 queueMicrotask(()=>{callback()});
             });
         }
+        // if loop is true, then prepare to start the animations again
         if(this.localTime >= this._duration + this._delayTime + this._dragTime && this.loop){
             this.localTime = 0;
             this.onGoing = true;
@@ -200,7 +204,6 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         return this._duration + this._delayTime + this._dragTime;
     }
 
-    // delayTime and dragTime are 
     set duration(duration: number) {
         if(duration < 0){
             return;
@@ -523,6 +526,7 @@ export class Animation<T> implements Animator{
     private onGoing: boolean;
     private currentKeyframeIndex: number;
     private loop: boolean;
+    private playedTime: number;
     private setUpFn: Function;
     private tearDownFn: Function;
     private parent: AnimatorContainer | undefined;
@@ -532,6 +536,7 @@ export class Animation<T> implements Animator{
     private reverse: boolean = false;
     private endCallbacks: Function[] = [];
     private startCallbacks: Function[] = [];
+    private startAfterDelayCallbacks: Function[] = [];
 
     constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1000, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this._duration = duration;
@@ -546,6 +551,7 @@ export class Animation<T> implements Animator{
         this.setUpFn = setUpFn;
         this.tearDownFn = tearDownFn;
         this.parent = parent;
+        this.playedTime = 0;
     }
 
     toggleReverse(reverse: boolean){
@@ -591,6 +597,8 @@ export class Animation<T> implements Animator{
             // console.log("current delta time", deltaTime);
             // console.log("previous local time", this.localTime - deltaTime);
             // console.log("animation start");
+            console.log(`the animation has been played ${this.playedTime} times`);
+            console.log(`the animation is now playing for the ${this.playedTime + 1} time`);
             this.startCallbacks.forEach((callback) => {
                 queueMicrotask(()=>{callback()});
             });
@@ -600,6 +608,11 @@ export class Animation<T> implements Animator{
             // console.log("duration", this.duration);
             // console.log("local time would trigger end", this.localTime >= this._duration + this.delayTime + this.dragTime);
             // console.log("delta time", deltaTime);
+            if(this.localTime - deltaTime <= this.delayTime && this.delayTime !== 0 && deltaTime > 0){
+                this.startAfterDelayCallbacks.forEach((callback) => {
+                    queueMicrotask(()=>{callback()});
+                });
+            }
             let localTimePercentage = (this.localTime - this.delayTime) / (this._duration);
             let targetPercentage = this.easeFn(localTimePercentage);
             if (localTimePercentage > 1){
@@ -624,6 +637,7 @@ export class Animation<T> implements Animator{
             this.applyAnimationValue(value);
             if(this.localTime >= this._duration + this.dragTime + this.delayTime){
                 // console.log("animation should end");
+                this.playedTime += 1;
                 this.endCallbacks.forEach((callback) => {
                     queueMicrotask(()=>{callback()});
                 });
@@ -679,7 +693,7 @@ export class Animation<T> implements Animator{
     }
 
     setUp(): void {
-        this.applyAnimationValue(this.keyframes[0].value);
+        // this.applyAnimationValue(this.keyframes[0].value);
         this.setUpFn();
     }
 
@@ -809,6 +823,13 @@ export class Animation<T> implements Animator{
         this.startCallbacks.push(callback);
         return ()=>{
             this.startCallbacks = this.startCallbacks.filter((cb) => cb != callback);
+        }
+    }
+
+    onStartAfterDelay(callback: Function): UnSubscribe{
+        this.startAfterDelayCallbacks.push(callback);
+        return ()=>{
+            this.startAfterDelayCallbacks = this.startAfterDelayCallbacks.filter((cb) => cb != callback);
         }
     }
 
