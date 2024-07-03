@@ -597,8 +597,8 @@ export class Animation<T> implements Animator{
             // console.log("current delta time", deltaTime);
             // console.log("previous local time", this.localTime - deltaTime);
             // console.log("animation start");
-            console.log(`the animation has been played ${this.playedTime} times`);
-            console.log(`the animation is now playing for the ${this.playedTime + 1} time`);
+            // console.log(`the animation has been played ${this.playedTime} times`);
+            // console.log(`the animation is now playing for the ${this.playedTime + 1} time`);
             this.startCallbacks.forEach((callback) => {
                 queueMicrotask(()=>{callback()});
             });

@@ -63,11 +63,11 @@ describe("Animation Class Tests", ()=>{
     });
 
     test("Animation is played according to keyframes", ()=>{
-        const deltaTime = 0.1;
+        const deltaTime = 100;
         let time = 0;
         testAnimator.startAnimation();
-        while (time <= 1){
-            if(time == 0.5){
+        while (time <= 1000){
+            if(time == 500){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
                 expect(exampleObj.getPosition().y).toBeCloseTo(3);
             }
@@ -134,13 +134,13 @@ describe("Composite Animation Tests", ()=>{
     });
 
     test("Stopping the animation would stop the animation", ()=>{
-        const deltaTime = 0.1;
+        const deltaTime = 100;
         let time = 0;
         testAnimator.startAnimation();
         let expectedPosition: Point = {x: 0, y: 0};
         let expectedNumber: number = 0;
-        while (time <= 1){
-            if(time == 0.4){
+        while (time <= 1000){
+            if(time == 400){
                 testAnimator.pauseAnimation();
                 expectedPosition = exampleObj.getPosition();
                 expectedNumber = animatedNumber;
@@ -153,11 +153,11 @@ describe("Composite Animation Tests", ()=>{
     });
 
     test("Animation is played according to keyframes", ()=>{
-        const deltaTime = 0.1;
+        const deltaTime = 100;
         let time = 0;
         testAnimator.startAnimation();
-        while (time <= 1){
-            if(time == 0.5){
+        while (time <= 1000){
+            if(time == 500){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
                 expect(exampleObj.getPosition().y).toBeCloseTo(3);
                 expect(animatedNumber).toBeCloseTo(3);
