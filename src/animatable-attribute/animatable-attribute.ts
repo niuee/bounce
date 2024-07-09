@@ -1,5 +1,6 @@
 import { PointCal, Point } from "point2point";
 import { Keyframe } from "../composite-animation";
+import { EasingFunctions } from "src";
 
 export interface AnimatableAttributeHelper<T> {
     lerp(ratio: number, start: Keyframe<T>, end: Keyframe<T>): T;
@@ -12,19 +13,30 @@ export class PointAnimationHelper implements AnimatableAttributeHelper<Point> {
     }
 
     lerp(ratio: number, start: Keyframe<Point>, end: Keyframe<Point>): Point {
-        const res = PointCal.addVector(start.value, PointCal.multiplyVectorByScalar(PointCal.subVector(end.value, start.value), (ratio - start.percentage) / (end.percentage - start.percentage)));
+        const inbetweenRatio = (ratio - start.percentage) / (end.percentage - start.percentage);
+        let transformed = inbetweenRatio;
+        if(start.easingFn){
+            transformed = start.easingFn(inbetweenRatio);
+        }
+        const res = PointCal.addVector(start.value, PointCal.multiplyVectorByScalar(PointCal.subVector(end.value, start.value), transformed));
         return res;
     }
 
 }
 
 export class NumberAnimationHelper implements AnimatableAttributeHelper<number>{
+
     constructor(){
 
     }
 
     lerp(ratio: number, start: Keyframe<number>, end: Keyframe<number>): number {
-        const res = start.value + ((ratio - start.percentage) / (end.percentage - start.percentage)) * (end.value - start.value);
+        const inbetweenRatio = (ratio - start.percentage) / (end.percentage - start.percentage);
+        let transformed = inbetweenRatio;
+        if(start.easingFn){
+            transformed = start.easingFn(inbetweenRatio);
+        }
+        const res = start.value + transformed * (end.value - start.value);
         return res;
     }
 }

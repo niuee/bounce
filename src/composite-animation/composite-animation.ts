@@ -620,7 +620,7 @@ export class Animation<T> implements Animator{
             }
             let value: T;
             // console.log("currentKeyframeIndex", this.currentKeyframeIndex, "length", this.keyFrames.length);
-            if(this.currentKeyframeIndex < this.keyframes.length && (this.reverse ? 1 - this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage : this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage) ){
+            if(this.currentKeyframeIndex < this.keyframes.length && this.currentKeyframeIndex >= 0 && (this.reverse ? 1 - this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage : this.keyframes[this.currentKeyframeIndex].percentage == targetPercentage) ){
                 value = this.keyframes[this.currentKeyframeIndex].value;
             } else {
                 value = this.findValue(targetPercentage, this.keyframes, this.animatableAttributeHelper);
@@ -845,6 +845,7 @@ export class Animation<T> implements Animator{
 export type Keyframe<T> = {
     percentage: number; // from 0 to 1;
     value: T;
+    easingFn?: (percentage: number) => number;
 }
 
 export interface Keyframes<T> {
