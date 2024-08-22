@@ -538,6 +538,8 @@ export class Animation<T> implements Animator{
     private startCallbacks: Function[] = [];
     private startAfterDelayCallbacks: Function[] = [];
 
+    private zeroPercentageValue: T;
+
     constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1000, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this._duration = duration;
         this.keyframes = keyFrames;
@@ -552,6 +554,7 @@ export class Animation<T> implements Animator{
         this.tearDownFn = tearDownFn;
         this.parent = parent;
         this.playedTime = 0;
+        this.zeroPercentageValue = this.findValue(0, keyFrames, animatableAttributeHelper);
     }
 
     toggleReverse(reverse: boolean){
@@ -562,6 +565,7 @@ export class Animation<T> implements Animator{
         this.localTime = 0;
         this.currentKeyframeIndex = 0;
         this.onGoing = true;
+        this.applyAnimationValue(this.zeroPercentageValue);
         this.setUp();
     }
 
@@ -685,6 +689,10 @@ export class Animation<T> implements Animator{
                     right = mid - 1;
                 }
             }
+        }
+        if(left > keyframes.length - 1){
+            // excceding the keyframes
+            left = keyframes.length - 1;
         }
         const interpolateStartFrame = this.reverse ? {percentage: 1 - keyframes[left].percentage, value: keyframes[left].value} : keyframes[left - 1];
         const interplateEndFrame = this.reverse ? {percentage: 1 - keyframes[left - 1].percentage, value: keyframes[left - 1].value} : keyframes[left];
