@@ -591,6 +591,9 @@ export class Animation<T> implements Animator{
         if(this.onGoing != true || this.localTime < 0) {
             return;
         }
+        if(deltaTime == 0){
+            return;
+        }
         this.localTime += deltaTime;
         // console.log("--------------------");
         // console.log("local time", this.localTime);
@@ -806,6 +809,7 @@ export class Animation<T> implements Animator{
 
     set keyFrames(keyFrames: Keyframe<T>[]){
         this.keyframes = keyFrames;
+        this.zeroPercentageValue = this.findValue(0, keyFrames, this.animatableAttributeHelper);
     }
 
     get keyFrames(): Keyframe<T>[]{
