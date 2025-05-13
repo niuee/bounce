@@ -7,10 +7,10 @@ export interface Animator{
     delay: number;
     drag: number;
     nonCascadingDuration(newDuration: number): void;
-    startAnimation(): void;
-    stopAnimation(): void;
-    pauseAnimation(): void;
-    resumeAnimation(): void;
+    start(): void;
+    stop(): void;
+    pause(): void;
+    resume(): void;
     animate(deltaTime: number): void;
     setUp(): void;
     resetAnimationState(): void;
@@ -22,6 +22,7 @@ export interface Animator{
     onStart(callback: Function): UnSubscribe;
     clearOnStart(): void;
     clearOnEnd(): void;
+    maxLoopCount: number | undefined;
     playing: boolean;
 }
 
@@ -46,6 +47,7 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     private _dragTime: number;
     private _delayTime: number;
     private parent: AnimatorContainer | undefined;
+    private _maxLoopCount: number | undefined;
 
     private endCallbacks: Function[] = [];
     private startCallbacks: Function[] = [];
@@ -108,20 +110,23 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         if(this.localTime >= this._duration + this._delayTime + this._dragTime){
             // console.log("composite animation end");
             this.playedTime += 1;
-            this.onGoing = false;
             this.endCallbacks.forEach((callback) => {
                 queueMicrotask(()=>{callback()});
             });
-        }
-        // if loop is true, then prepare to start the animations again
-        if(this.localTime >= this._duration + this._delayTime + this._dragTime && this.loop){
-            this.localTime = 0;
-            this.onGoing = true;
-            this.animations.forEach((animation) => {
-                if(animation.animator.loops){
-                    animation.animator.startAnimation();
-                }
-            });
+            if(!this.loops || (this.maxLoopCount != undefined && this.playedTime >= this.maxLoopCount)){
+                // this.onGoing = false;
+                this.stop();
+            } else {
+                // if loop is true and current loop is not the last loop, then prepare to start the animations again
+                // this.onGoing = true;
+                // this.localTime = 0;
+                // this.animations.forEach((animation) => {
+                //     if(animation.animator.loops){
+                //         animation.animator.startAnimation();
+                //     }
+                // });
+                this.start();
+            }
         }
     }
 
@@ -168,34 +173,35 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
         }
     }
 
-    pauseAnimation(): void {
+    pause(): void {
         this.onGoing = false;
         this.animations.forEach((animation) => {
-            animation.animator.pauseAnimation();
+            animation.animator.pause();
         });
     }
 
-    resumeAnimation(): void {
+    resume(): void {
         this.onGoing = true;
         this.animations.forEach((animation) => {
-            animation.animator.resumeAnimation();
+            animation.animator.resume();
         });
     }
 
-    startAnimation(): void {
+    start(): void {
         this.onGoing = true;
         this.setUp();
         this.localTime = 0;
         this.animations.forEach((animation) => {
-            animation.animator.startAnimation();
+            animation.animator.start();
         });
     }
 
-    stopAnimation(): void {
+    stop(): void {
         this.onGoing = false;
+        this.playedTime = 0;
         this.localTime = this._duration + 0.1;
         this.animations.forEach((animation) => {
-            animation.animator.stopAnimation();
+            animation.animator.stop();
         });
         this.tearDown();
     }
@@ -513,6 +519,14 @@ export class CompositeAnimation implements Animator, AnimatorContainer{
     get playing(): boolean {
         return this.onGoing;
     }
+
+    get maxLoopCount(): number | undefined {
+        return this._maxLoopCount;
+    }
+
+    set maxLoopCount(maxLoopCount: number | undefined) {
+        this._maxLoopCount = maxLoopCount;
+    }
 }
 
 export class Animation<T> implements Animator{
@@ -539,6 +553,8 @@ export class Animation<T> implements Animator{
     private startAfterDelayCallbacks: Function[] = [];
 
     private zeroPercentageValue: T;
+    private _maxLoopCount: number | undefined;
+    private _fillMode: 'none' | 'forwards' | 'backwards' | 'both' = 'none';
 
     constructor(keyFrames: Keyframe<T>[], applyAnimationValue: (value: T) => void, animatableAttributeHelper: AnimatableAttributeHelper<T>, duration: number = 1000, loop: boolean = false, parent: AnimatorContainer | undefined = undefined, setUpFn: Function = ()=>{}, tearDownFn: Function = ()=>{}, easeFn: (percentage: number) => number = easeFunctions.linear){
         this._duration = duration;
@@ -557,29 +573,30 @@ export class Animation<T> implements Animator{
         this.zeroPercentageValue = this.findValue(0, keyFrames, animatableAttributeHelper);
     }
 
-    toggleReverse(reverse: boolean){
+    toggleReverse(reverse: boolean): void{
         this.reverse = reverse;
     }
 
-    startAnimation(){
+    start(): void{
         this.localTime = 0;
         this.currentKeyframeIndex = 0;
         this.onGoing = true;
-        this.applyAnimationValue(this.zeroPercentageValue);
+        // this.applyAnimationValue(this.zeroPercentageValue);
         this.setUp();
     }
 
-    stopAnimation(){
+    stop(): void{
         this.onGoing = false;
         this.localTime = this._duration + this.dragTime + this.delayTime + 0.1;
+        this.playedTime = 0;
         this.tearDown();
     }
 
-    pauseAnimation(): void {
+    pause(): void{
         this.onGoing = false;
     }
 
-    resumeAnimation(): void {
+    resume(){
         this.onGoing = true;
     }
 
@@ -619,6 +636,7 @@ export class Animation<T> implements Animator{
                 this.startAfterDelayCallbacks.forEach((callback) => {
                     queueMicrotask(()=>{callback()});
                 });
+                this.applyAnimationValue(this.zeroPercentageValue);
             }
             let localTimePercentage = (this.localTime - this.delayTime) / (this._duration);
             let targetPercentage = this.easeFn(localTimePercentage);
@@ -648,14 +666,24 @@ export class Animation<T> implements Animator{
                 this.endCallbacks.forEach((callback) => {
                     queueMicrotask(()=>{callback()});
                 });
-                this.onGoing = false;
+                if(!this.loops || (this._maxLoopCount != undefined && this.playedTime >= this.maxLoopCount)){
+                    // this.onGoing = false;
+                    // console.log("animation should stop after ", this.playedTime, " loops");
+                    this.stop();
+                } else {
+                    console.log("animation should restart");
+                    this.onGoing = true;
+                    this.localTime = 0;
+                    this.currentKeyframeIndex = 0;
+                    this.start();
+                }
             }
-            if((this.localTime >= this._duration + this.delayTime + this.dragTime) && this.loop){
-                // this.startAnimation();
-                this.localTime = 0;
-                this.onGoing = true;
-                this.currentKeyframeIndex = 0;
-            }
+            // if((this.localTime >= this._duration + this.delayTime + this.dragTime) && this.loop){
+            //     // this.startAnimation();
+            //     this.localTime = 0;
+            //     this.onGoing = true;
+            //     this.currentKeyframeIndex = 0;
+            // }
         }
     }
 
@@ -851,6 +879,14 @@ export class Animation<T> implements Animator{
 
     clearOnStart(): void {
         this.startCallbacks = [];
+    }
+
+    get maxLoopCount(): number | undefined {
+        return this._maxLoopCount;
+    }
+
+    set maxLoopCount(maxLoopCount: number | undefined) {
+        this._maxLoopCount = maxLoopCount;
     }
 }
 

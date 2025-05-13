@@ -11,7 +11,7 @@ const fs = require('fs');
 const plugins = [
     resolve(),
     typescript({
-      tsconfig: './tsconfig.json',
+      tsconfig: './prod.tsconfig.json',
       declaration: false,
     }),
     terser({
@@ -112,7 +112,7 @@ export default [
     plugins: [
       resolve(),
       typescript({
-        tsconfig: './tsconfig.json',
+        tsconfig: './prod.tsconfig.json',
         declaration: false,
       }),
       terser({
