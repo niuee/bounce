@@ -49,11 +49,11 @@ describe("Animation Class Tests", ()=>{
     test("Stopping the animation would stop the animation", ()=>{
         const deltaTime = 0.1;
         let time = 0;
-        testAnimator.startAnimation();
+        testAnimator.start();
         let expectedPosition: Point = {x: 0, y: 0};
         while (time <= 1){
             if(time == 0.4){
-                testAnimator.stopAnimation();
+                testAnimator.stop();
                 expectedPosition = exampleObj.getPosition();
             }
             testAnimator.animate(deltaTime);
@@ -65,7 +65,7 @@ describe("Animation Class Tests", ()=>{
     test("Animation is played according to keyframes", ()=>{
         const deltaTime = 100;
         let time = 0;
-        testAnimator.startAnimation();
+        testAnimator.start();
         while (time <= 1000){
             if(time == 500){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
@@ -80,7 +80,7 @@ describe("Animation Class Tests", ()=>{
         const deltaTime = 0.01;
         let time = 0;
         testAnimator.toggleReverse(true);
-        testAnimator.startAnimation();
+        testAnimator.start();
         while (time <= 1){
             if(time == 0.6){
                 expect(exampleObj.getPosition().x).toBeCloseTo(1.7);
@@ -136,12 +136,12 @@ describe("Composite Animation Tests", ()=>{
     test("Stopping the animation would stop the animation", ()=>{
         const deltaTime = 100;
         let time = 0;
-        testAnimator.startAnimation();
+        testAnimator.start();
         let expectedPosition: Point = {x: 0, y: 0};
         let expectedNumber: number = 0;
         while (time <= 1000){
             if(time == 400){
-                testAnimator.pauseAnimation();
+                testAnimator.pause();
                 expectedPosition = exampleObj.getPosition();
                 expectedNumber = animatedNumber;
             }
@@ -155,7 +155,7 @@ describe("Composite Animation Tests", ()=>{
     test("Animation is played according to keyframes", ()=>{
         const deltaTime = 100;
         let time = 0;
-        testAnimator.startAnimation();
+        testAnimator.start();
         while (time <= 1000){
             if(time == 500){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
@@ -171,7 +171,7 @@ describe("Composite Animation Tests", ()=>{
         const deltaTime = 0.1;
         let time = 0;
         testAnimator.duration = 2;
-        testAnimator.startAnimation();
+        testAnimator.start();
         while (time <= testAnimator.duration){
             if(time == 1){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
@@ -204,7 +204,7 @@ describe("Composite Animation Tests", ()=>{
         const deltaTime = 0.1;
         let time = 0;
         testAnimator.duration = 10;
-        testAnimator.startAnimation();
+        testAnimator.start();
         while (time <= testAnimator.duration){
             if(time == 5){
                 expect(exampleObj.getPosition().x).toBeCloseTo(3);
