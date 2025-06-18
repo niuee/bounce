@@ -671,7 +671,7 @@ export class Animation<T> implements Animator{
                     // console.log("animation should stop after ", this.playedTime, " loops");
                     this.stop();
                 } else {
-                    console.log("animation should restart");
+                    // console.log("animation should restart");
                     this.onGoing = true;
                     this.localTime = 0;
                     this.currentKeyframeIndex = 0;

@@ -41,7 +41,7 @@ const animation = new Animation(keyframes, (value) => {
 }, numberHelperFunctions, 1000, true);
 
 const img = new Image();
-img.src = '/assets/DemoRpgCharacter.png';
+img.src = '/assets/iso-cube.png';
 
 animation.maxLoopCount = 3;
 
@@ -100,14 +100,42 @@ function draw(timestamp: number){
     const deltaTime = timestamp - lastTimestamp;
     lastTimestamp = timestamp;
     compositeAnimation.animate(deltaTime);
-    context.beginPath();
-    context.arc(0, 0, 5 / board.camera.zoomLevel, 0, Math.PI * 2);
-    context.fill();
+    // context.beginPath();
+    // context.arc(0, 0, 5 / board.camera.zoomLevel, 0, Math.PI * 2);
+    // context.fill();
     drawArrow(context, board.camera.zoomLevel, {x: 0, y: 0}, {x: 0, y: length});
     drawArrow(context, board.camera.zoomLevel, {x: 0, y: 0}, {x: length, y: 0});
-    if(img && img.complete) {
-        context.drawImage(img, 0 + colIndex * 32, 0, 32, 32, 0, 0, 32, 32);
-    }
+    const cos30 = Math.cos(Math.PI / 6);
+    const cos60 = Math.cos(Math.PI / 3);
+    context.save();
+
+    context.transform(cos30, cos60, -cos30, cos60, 0, 0);
+    context.arc(0, 0, 16, 0, Math.PI * 2);
+    context.stroke();
+
+    context.restore();
+    context.beginPath();
+    context.moveTo(0, 0);
+    const point2 = pointConversion({x: 32, y: 0});
+    context.lineTo(point2.x, point2.y);
+    const point3 = pointConversion({x: 32, y: 32});
+    context.lineTo(point3.x, point3.y);
+    const point4 = pointConversion({x: 0, y: 32});
+    context.lineTo(point4.x, point4.y);
+    context.lineTo(0, 0);
+    context.closePath();
+    context.stroke();
+    // if(img && img.complete) {
+    //     for(let j = 0; j < 12; j++){
+    //         for(let i = 0; i < 12; i++){
+    //             // context.beginPath();
+    //             // context.rect(j * 32, i * 32, img.width, img.height);
+    //             // context.stroke();
+    //             const point = pointConversion({x: j * (16 / Math.cos(Math.PI / 6)), y: i * (16 / Math.cos(Math.PI / 6))});
+    //             context.drawImage(img, 0, 0, 32, 32, point.x, point.y, 32, 32);
+    //         }
+    //     }
+    // }
     requestAnimationFrame(draw);
 }
 
@@ -134,3 +162,14 @@ function drawArrow(context: CanvasRenderingContext2D, cameraZoomLevel: number, s
 }
 
 draw(0);
+
+// isometric point to flat world point
+function pointConversion(point: Point) {
+    const cos30 = Math.cos(Math.PI / 6);
+    const cos60 = Math.cos(Math.PI / 3);
+
+    return {
+        x: point.x * cos30 - point.y * cos30,
+        y: point.x * cos60 + point.y * cos60
+    }
+}

@@ -12,8 +12,8 @@ importers:
         specifier: ^0.0.93
         version: 0.0.93
       ue-too:
-        specifier: ^0.3.2
-        version: 0.3.2
+        specifier: file:../self/board-self/build
+        version: file:../self/board-self/build
     devDependencies:
       '@rollup/plugin-node-resolve':
         specifier: ^15.1.0
@@ -1671,8 +1671,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  ue-too@0.3.2:
-    resolution: {integrity: sha512-iyvc9nJuW7x9dcFNa+g3xrqCiqkpRufc740EOJZ0f9WjgFMJXLOPvHe7k/onoar2NQt8Gziw1Zkbv4s6Bhy/Ng==}
+  ue-too@file:../self/board-self/build:
+    resolution: {directory: ../self/board-self/build, type: directory}
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
@@ -3562,7 +3562,7 @@ snapshots:
 
   typescript@5.3.3: {}
 
-  ue-too@0.3.2:
+  ue-too@file:../self/board-self/build:
     dependencies:
       point2point: 0.0.95
 
