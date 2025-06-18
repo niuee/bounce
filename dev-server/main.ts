@@ -1,7 +1,7 @@
-import { PointCal } from 'point2point';
+import { PointCal, Point } from 'point2point';
 import { integerHelperFunctions, numberHelperFunctions } from 'src';
 import { Animation, CompositeAnimation, Keyframe } from 'src/composite-animation';
-import { Board, Point } from 'ue-too';
+import { Board } from 'ue-too';
 
 
 function init(): Board | undefined{

@@ -16,8 +16,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "point2point": "^0.0.93",
-    "ue-too": "file:../self/board-self/build"
+    "point2point": "^0.0.93"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.1.0",
@@ -31,6 +30,7 @@
     "tsc-alias": "^1.8.10",
     "tslib": "^2.6.0",
     "typescript": "^5.0.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "ue-too": "^0.5.0"
   }
 }
