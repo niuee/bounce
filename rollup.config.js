@@ -1,5 +1,5 @@
+// rollup.config.js
 import typescript from '@rollup/plugin-typescript';
-// import typescript from 'rollup-plugin-typescript2';
 import resolve from '@rollup/plugin-node-resolve';
 import terser from "@rollup/plugin-terser";
 import path from 'path';
@@ -11,15 +11,16 @@ const fs = require('fs');
 const plugins = [
     resolve(),
     typescript({
-      tsconfig: './prod.tsconfig.json',
+      tsconfig: './tsconfig.json',
       declaration: false,
+      exclude: ["node_modules", "dist", "build", "devserver/**/*", "tests/**/*"],
     }),
     terser({
       mangle: false,
     }),
 ]
 
-export const getComponentsFoldersRecursive = (entry) => {
+const getComponentsFoldersRecursive = (entry) => {
   const finalListOfDirs = [];
   const dirs = fs.readdirSync(entry)
   while (dirs.length !== 0){
@@ -51,15 +52,18 @@ const folderBuilds = getComponentsFoldersRecursive('./src').map((folder) => {
       sourcemap: true,
       format: 'esm',
     },
-    // {
-    //   file: `build/${folder}/index.cjs`,
-    //   sourcemap: true,
-    //   format: 'cjs',
-    // }
+    {
+      file: `build/${folder}/index.cjs`,
+      sourcemap: true,
+      format: 'cjs',
+    }
     ],
     plugins: [
         ...plugins,
-    ]
+    ],
+    external: [
+      'point2point',
+    ],
   };
 });
 
@@ -71,49 +75,47 @@ export default [
     output: [{
       file: packageJson.main,
       format: 'cjs',
+      name: 'ue-too',
       sourcemap: true,
-    },  
+    },
     {
       file: packageJson.module,
       format: 'esm',
-      sourcemap: true
-    }
-    ],
-    plugins: [
-      resolve(),
-      typescript(),
-      terser({
-        mangle: true,
-      }),
-    ],
-  },
-  {
-    // distribution for direct browser usage
-    input: 'src/index.ts',
-    output: [
-    // {
-    //   file: 'dist/bounce.js',
-    //   format: 'esm',
-    //   sourcemap: true,
-    // },
-    {
-      file: 'build/umd/index.js',
-      format: 'umd',
-      name: "Bounce",
-      sourcemap: true
-    },
-    {
-      file: 'build/iife/index.js',
-      format: 'iife',
-      name: "Bounce",
+      name: 'ue-too',
       sourcemap: true
     }
     ],
     plugins: [
       resolve(),
       typescript({
-        tsconfig: './prod.tsconfig.json',
+        tsconfig: "./tsconfig.json",
+        exclude: ["node_modules", "dist", "build", "devserver/**/*", "tests/**/*"],
+        declaration: true,
+      }),
+      terser({
+        mangle: true,
+      }),
+    ],
+    external: ['point2point'],
+  },
+  {
+    // distribution for direct browser usage
+    input: 'src/index.ts',
+    output: [
+    {
+      file: 'dist/ue-too.js',
+      format: 'esm',
+      name: 'ue-too',
+      sourcemap: true,
+    },
+    ],
+    plugins: [
+      resolve(),
+      typescript({
+        tsconfig: './tsconfig.json',
         declaration: false,
+        exclude: ["node_modules", "dist", "build", "devserver/**/*", "tests/**/*"],
+        outDir: 'dist',
       }),
       terser({
         mangle: false,

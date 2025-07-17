@@ -9,7 +9,7 @@
     "build": "pnpm run rollup && pnpm run gen-declaration && pnpm run move-package",
     "rollup": "rollup -c --bundleConfigAsCjs",
     "move-package": "node ./scripts/move-package.mjs",
-    "gen-declaration": "pnpm exec tsc --declaration --emitDeclarationOnly && pnpm exec tsc-alias",
+    "gen-declaration": "pnpm exec tsc --declaration --emitDeclarationOnly -p ./prod.tsconfig.json && pnpm exec tsc-alias -p ./prod.tsconfig.json",
     "test": "jest",
     "dev": "pnpm exec vite --config vite.config.mjs"
   },
